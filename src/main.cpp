@@ -12,7 +12,6 @@ vector<vector<int8_t>> vector_set;
 /* Create the index */
 int create_index()
 {
-    
     return 0;
 }
 
