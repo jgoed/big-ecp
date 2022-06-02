@@ -1,116 +1,72 @@
 #include <fstream>
 #include <iostream>
+#include <math.h>
 #include <string>
 #include <sstream>
 #include <vector>
 
 using namespace std;
 
-/* Global variables */
-vector<vector<int8_t>> vector_set;
-
-/* Create the index */
-int create_index()
+struct
 {
-    return 0;
+    uint32_t n;  // Numer of data points
+    uint32_t ds; // Descriptor size
+} dm;            // Dataset metadata
+
+struct point
+{
+    int cluster_id;
+    int id;
+    vector<int8_t> descriptors;
+};
+
+struct node
+{
+    std::vector<node> children;
+    std::vector<point> points;
+};
+
+float euclidean_distance(const float *a, const float *b, const float &threshold = -1)
+{
+    float sums[] = {0.0, 0.0, 0.0, 0.0};
+    for (unsigned int i = 0; i < dm.ds; ++i)
+    {
+        float delta = a[i] - b[i];
+        sums[i % 4] += delta * delta;
+    }
+
+    return sums[0] + sums[1] + sums[2] + sums[3];
 }
 
-/* Search k nearest neigbhors for a given query point q */
-int query()
+int main()
 {
-    return 0;
-}
-
-/* Read the binary file in a global vector of vectors */
-int read_binary_file(string filename)
-{
-    ifstream dataset(filename, ios::in | ios::binary);
-
+    // Open dataset
+    fstream dataset("spacev1b_base.i8bin", ios::in | ios::binary);
     if (!dataset)
     {
         cout << "Cannot open file!" << endl;
         return 1;
     }
 
-    uint32_t num_points;
-    uint32_t num_dimensions;
+    // Read metadata
 
-    dataset.read((char *)&num_points, sizeof(uint32_t));
-    dataset.read((char *)&num_dimensions, sizeof(uint32_t));
+    dataset.read((char *)&dm.n, sizeof(uint32_t));
+    dataset.read((char *)&dm.ds, sizeof(uint32_t));
+    int desired_cluster_size = 512000;                   // 512000 byte / (1 byte * descriptor_size)
+    int l = ceil(dm.n / (desired_cluster_size / dm.ds)); // number of leaders
 
-    cout << "num_points:" << num_points << endl;
-    cout << "num_dimensions:" << num_dimensions << endl;
-
-    for (int i = 0; i < num_points; i++)
+    vector<point> leaders;
+    for (int i = 0; i < l; i++)
     {
-        vector<int8_t> vector_point(num_dimensions);
-        dataset.read(reinterpret_cast<char *>(vector_point.data()), sizeof(int8_t) * num_dimensions);
-        vector_set.push_back(vector_point);
+
+        vector<int8_t> vector_point(dm.ds);
+        dataset.read(reinterpret_cast<char *>(vector_point.data()), sizeof(int8_t) * dm.ds);
+
+        point current_point;
+        current_point.id = i;
+        current_point.descriptors = vector_point;
+        leaders.push_back(current_point);
     }
-
-    dataset.close();
-
-    if (vector_set.size() != num_points)
-    {
-        cout << "Error while reading the binary file!" << endl;
-    }
-
-    vector_set.shrink_to_fit();
-    cout << (int)vector_set[100000][99] << endl;
-    return 0;
-}
-
-int main()
-{
-    // int L = 2;
-    // int metric = 0;
-    // int k = 2;
-    // int b = 2;
-    // int p = 1000;
-    // int d = 128;
-    // int r = 1000;
-    // int qs = 15;
-
-    // vector<vector<int>> S;
-    // vector<vector<int>> q;
-
-    read_binary_file("spacev1b_base.i8bin");
-
-    // ofstream wf("test.bin", ios::out | ios::binary);
-
-    // if (!wf)
-    // {
-    //     cout << "Cannot open file!" << endl;
-    //     return 1;
-    // }
-
-    // uint32_t num = 4294967293;
-
-    // wf.write((char *)&num, sizeof(int));
-
-    // wf.close();
-
-    // if (!wf.good())
-    // {
-    //     cout << "Error occurred at writing time!" << endl;
-    //     return 1;
-    // }
-
-    // ifstream rf("test.bin", ios::in | ios::binary);
-
-    // if (!rf)
-    // {
-    //     cout << "Cannot open file!" << endl;
-    //     return 1;
-    // }
-
-    // uint32_t res;
-
-    // rf.read((char *)&res, sizeof(int));
-
-    // rf.close();
-
-    // cout << res << endl;
 
     return 0;
 }
