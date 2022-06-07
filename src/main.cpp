@@ -12,6 +12,7 @@ using namespace std;
 uint32_t num_points;
 uint32_t num_dimensions;
 uint32_t num_leaders;
+uint32_t test_count = 0;
 
 struct Point
 {
@@ -55,24 +56,6 @@ vector<uint32_t> get_random_unique_indexes(int amount, uint32_t container_size)
     return collected_samples;
 }
 
-vector<vector<unsigned>> generate_leaders_indexes(size_t num_points, unsigned L)
-{
-    // Indexes picked randomly from input dataset used as leaders for each level
-    vector<vector<unsigned>> random_leader_indexes(L);
-
-    // Computing random indexes top-down, leader_indexes[0] is top level.
-    for (unsigned cur_lvl = 1; cur_lvl <= L; cur_lvl++)
-    {
-        // Calculate level sizes (i.e. how many clusters for level L)
-        int leaders_per_lvl = ceil(pow(num_leaders, ((1.0 / L)) * cur_lvl));
-        // Pick random leaders for current level
-        random_leader_indexes[cur_lvl - 1].reserve(leaders_per_lvl);
-        random_leader_indexes[cur_lvl - 1] = get_random_unique_indexes(leaders_per_lvl, num_points);
-    }
-
-    return random_leader_indexes;
-}
-
 float euclidean_distance(const int8_t *a, const int8_t *b)
 {
     float sums[] = {0.0, 0.0, 0.0, 0.0};
@@ -85,7 +68,31 @@ float euclidean_distance(const int8_t *a, const int8_t *b)
     return sums[0] + sums[1] + sums[2] + sums[3];
 }
 
-Node *get_closest_node(vector<Node> &nodes, int8_t *query)
+Node *get_closest_node_tree(vector<Node> &nodes, int8_t *query, int deepth)
+{
+    float max = numeric_limits<float>::max();
+    Node *closest = nullptr;
+
+    for (Node &node : nodes)
+    {
+        const float distance = euclidean_distance(query, &node.points[0].descriptors[0]);
+
+        if (distance < max)
+        {
+            max = distance;
+            closest = &node;
+        }
+    }
+
+    if (deepth > 1)
+    {
+        closest = get_closest_node_tree(closest->children, query, deepth - 1);
+    }
+
+    return closest;
+}
+
+Node *get_closest_node(std::vector<Node> &nodes, int8_t *query)
 {
     float max = numeric_limits<float>::max();
     Node *closest = nullptr;
@@ -101,6 +108,60 @@ Node *get_closest_node(vector<Node> &nodes, int8_t *query)
         }
     }
     return closest;
+}
+
+bool is_leaf(Node &node) { return node.children.empty(); }
+
+void print_index_levels(std::vector<Node> &root)
+{
+    // Standard level order traversal code
+    // using queue
+    std::queue<Node> q; // Create a queue
+                        // Enqueue top_level
+    for (auto &cluster : root)
+    {
+        q.push(cluster);
+    }
+
+    while (!q.empty())
+    {
+        int n = q.size();
+
+        // If this node has children
+        while (n > 0)
+        {
+            // Dequeue an item from queue and print it
+            Node node = q.front();
+            q.pop();
+
+            if (is_leaf(node))
+            {
+                std::cout << " [L: " << node.points.size() << " ]";
+            }
+            else
+                std::cout << " [N: " << node.children.size() << "] ";
+
+            // Enqueue all children of the dequeued item
+            for (unsigned int i = 0; i < node.children.size(); i++)
+                q.push(node.children[i]);
+            n--;
+        }
+
+        std::cout << "\n"; // Print new line between two levels
+    }
+    std::cout << "--------------\n";
+}
+
+Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
+{
+    Node *closest_cluster = get_closest_node(nodes, query);
+
+    if (!closest_cluster->children.empty())
+    {
+        return find_nearest_leaf(query, closest_cluster->children);
+    }
+
+    return closest_cluster;
 }
 
 int main()
@@ -123,55 +184,90 @@ int main()
     int desired_cluster_size = 512000;                                                                              // 512000 byte is default block size for SSDs
     num_leaders = ceil(num_points / (desired_cluster_size / (sizeof(int8_t) * num_dimensions + sizeof(uint32_t)))); // N/ts
 
-    // leaders per lvl
-    // int leaders_per_lvl = ceil(pow(num_leaders, ((1.0 / L)) * cur_lvl));
-
     // Generate random leaders
-    // TODO: Not the right amount per level and all different INLCUDE FROM ABOVE AND MAKE SIMPLER AS VECTOR<int>
-    // const auto random_leader_indexes = generate_leaders_indexes(num_points, L);
-    vector<uint32_t> random_leader_indexes = get_random_unique_indexes(num_leaders, num_points);
+    // vector<uint32_t> random_leader_indexes = get_random_unique_indexes(num_leaders, num_points);
 
-    vector<Node> upper_level;
+    vector<Node> tree;
 
     for (int cur_lvl = 1; cur_lvl <= L; cur_lvl++)
     {
-        int leaders_per_lvl = ceil(pow(num_leaders, ((1.0 / L)) * cur_lvl));
-        vector<Node> current_level;
+        int leaders_per_lvl = ceil(pow(num_leaders, ((1.0 / L)) * (cur_lvl)));
 
-        for (int i = 0; i < leaders_per_lvl; i++)
+        if (cur_lvl == 1)
         {
-            // Read descriptors at index
-            vector<int8_t> current_descriptors(num_dimensions);
-            dataset.seekg((sizeof(num_points) + sizeof(num_dimensions) + random_leader_indexes.at(i) * num_dimensions * sizeof(int8_t)), dataset.beg);
-            dataset.read(reinterpret_cast<char *>(current_descriptors.data()), sizeof(int8_t) * num_dimensions);
+            vector<Node> current_level;
 
-            // Create point with descriptors
-            Point current_point;
-            current_point.id = random_leader_indexes.at(i);
-            current_point.descriptors = current_descriptors;
-
-            // Create node with point
-            Node current_node;
-            current_node.points.push_back(current_point);
-            if (cur_lvl == 1)
+            for (int i = 0; i < leaders_per_lvl; i++)
             {
+                // Read descriptors at index
+                vector<int8_t> current_descriptors(num_dimensions);
+                dataset.seekg((sizeof(num_points) + sizeof(num_dimensions) + i * num_dimensions * sizeof(int8_t)), dataset.beg);
+                dataset.read(reinterpret_cast<char *>(current_descriptors.data()), sizeof(int8_t) * num_dimensions);
+
+                // Create point with descriptors
+                Point current_point;
+                current_point.id = i;
+                current_point.descriptors = current_descriptors;
+
+                // Create node with point
+                Node current_node;
+                current_node.points.push_back(current_point);
                 current_level.push_back(current_node);
             }
-
-            // For every level after top
-            if (upper_level.size() != 0)
+            tree.swap(current_level);
+        }
+        else
+        {
+            for (int i = 0; i < leaders_per_lvl; i++)
             {
-                // // Add all nodes from current level as children of upper level
-                // for (auto node : current_level)
-                // {
-                //     auto clostest_node = get_closest_node(upper_level, &node.points[0].descriptors[0]);
-                //     clostest_node->children.push_back(node);
-                // }
+                // Read descriptors at index
+                vector<int8_t> current_descriptors(num_dimensions);
+                dataset.seekg((sizeof(num_points) + sizeof(num_dimensions) + i * num_dimensions * sizeof(int8_t)), dataset.beg);
+                dataset.read(reinterpret_cast<char *>(current_descriptors.data()), sizeof(int8_t) * num_dimensions);
+
+                // Create point with descriptors
+                Point current_point;
+                current_point.id = i;
+                current_point.descriptors = current_descriptors;
+
+                // Create node with point
+                Node current_node;
+                current_node.points.push_back(current_point);
+
+                Node *clostest_node = get_closest_node_tree(tree, &current_node.points[0].descriptors[0], cur_lvl - 1);
+                clostest_node->children.push_back(current_node);
             }
         }
-        // upper_level.swap(current_level);
-        break;
     }
+
+    // Add all points from input dataset to the index incl those duplicated in the index construction.
+    
+    for (uint32_t id = 0; id < num_points; id++)
+    {
+        // Read descriptors at index
+        vector<int8_t> current_descriptors(num_dimensions);
+        dataset.seekg((sizeof(num_points) + sizeof(num_dimensions) + id * num_dimensions * sizeof(int8_t)), dataset.beg);
+        dataset.read(reinterpret_cast<char *>(current_descriptors.data()), sizeof(int8_t) * num_dimensions);
+
+        // Create point with descriptors
+        Point current_point;
+        current_point.id = id;
+        current_point.descriptors = current_descriptors;
+
+        auto *leaf = find_nearest_leaf(current_point.descriptors.data(), tree);
+        // Because the leader was added to the cluster when the index was built
+        if (id != leaf->points[0].id)
+        {
+            leaf->points.emplace_back(current_point);
+        }
+        test_count++;
+    }
+
+    cout << test_count << endl;
+
+    print_index_levels(tree);
+
+    cout << sizeof(tree) << endl;
 
     return 0;
 }
