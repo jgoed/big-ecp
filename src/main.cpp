@@ -220,35 +220,60 @@ int main()
         }
     }
 
-    // ofstream index("index.i8bin", ios::out | ios::binary);
-    // index.write((char *)&tree[0], tree.size() * sizeof(Node));
-    // index.close();
+    ofstream index_file("index.i8bin", ios::out | ios::binary);
+    // index_file.write(reinterpret_cast<char *>(&tree), sizeof(tree));
+    // index_file.close();
 
-    // queue<Node> q;
-    // for (auto &node : tree)
-    // {
-    //     q.push(node);
-    // }
-    // while (!q.empty())
-    // {
-    //     int n = q.size();
-    //     while (n > 0)
-    //     {
-    //         Node node = q.front();
-    //         cout << node.points[0].id << endl;
-    //         q.pop();
-    //         if (!is_leaf(node))
-    //         {
-    //             for (unsigned int i = 0; i < node.children.size(); i++)
-    //             {
-    //                 q.push(node.children[i]);
-    //             }
-    //         }
-    //         n--;
-    //     }
-    // }
+    bool toggle = true;
 
-    print_index_levels(tree);
+    queue<Node> q;
+    for (auto &node : tree)
+    {
+        q.push(node);
+    }
+    while (!q.empty())
+    {
+        int n = q.size();
+        while (n > 0)
+        {
+            Node node = q.front();
+            q.pop();
+            if (toggle)
+            {
+                uint32_t cur_id = node.points[0].id;
+                uint32_t cur_num_children = node.children.size();
+                vector<int8_t> cur_descriptors = node.points.at(0).descriptors;
+                vector<Node> cur_children = node.children;
+                // index_file.write(reinterpret_cast<char *>(&cur_id), sizeof(cur_id));
+                // index_file.write(reinterpret_cast<char *>(&cur_num_children), sizeof(cur_num_children));
+                index_file.write(reinterpret_cast<char *>(cur_descriptors.data()), sizeof(int8_t) * node.points[0].descriptors.size());
+
+                index_file.close();
+
+                ifstream index_file_read;
+                index_file_read.open("index.i8bin", ios::in | ios::binary);
+                vector<int8_t> testvec(num_dimensions);
+                index_file_read.seekg(0, index_file_read.beg);
+                index_file_read.read(reinterpret_cast<char *>(testvec.data()), sizeof(sizeof(int8_t) * num_dimensions));
+                toggle = false;
+            }
+            cout << "id: " << node.points[0].id << " , num_child: " << node.children.size() << " | ";
+            if (!is_leaf(node))
+            {
+                for (unsigned int i = 0; i < node.children.size(); i++)
+                {
+                    q.push(node.children[i]);
+
+                    cout << "child_id: " << node.children[i].points[0].id << ", ";
+                }
+            }
+            cout << endl;
+            n--;
+        }
+    }
+    index_file.close();
+
+    // print_index_levels(tree);
 
     return 0;
 }
