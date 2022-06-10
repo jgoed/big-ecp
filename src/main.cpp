@@ -31,12 +31,10 @@ vector<uint32_t> get_random_unique_indexes(uint32_t amount, uint32_t max_index)
 {
     vector<uint32_t> collected_samples;
     collected_samples.reserve(amount);
-
     unordered_set<uint32_t> visited_samples;
     random_device random_seed;        // Will be used to obtain a seed for the random number engine.
     mt19937 generator(random_seed()); // Standard mersenne_twister_engine seeded with rd().
     // int start = container_size - amount;
-
     for (int i = 0; i < amount; i++)
     {
         uniform_int_distribution<uint32_t> distribution(0, max_index); // To-from inclusive.
@@ -57,22 +55,21 @@ vector<uint32_t> get_random_unique_indexes(uint32_t amount, uint32_t max_index)
     return collected_samples;
 }
 
-Point get_point_from_binary(uint32_t index)
+Point read_point_from_binary(uint32_t index)
 {
     vector<int8_t> descriptors(num_dimensions);
     dataset.seekg((sizeof(num_points) + sizeof(num_dimensions) + index * num_dimensions * sizeof(int8_t)), dataset.beg);
     dataset.read(reinterpret_cast<char *>(descriptors.data()), sizeof(int8_t) * num_dimensions);
-
     Point point;
     point.id = index;
     point.descriptors = descriptors;
     return point;
 }
 
-Node get_node_from_binary(uint32_t index)
+Node read_node_from_binary(uint32_t index)
 {
     Node node;
-    node.points.push_back(get_point_from_binary(index));
+    node.points.push_back(read_point_from_binary(index));
     return node;
 }
 
@@ -87,14 +84,13 @@ float euclidean_distance(const int8_t *a, const int8_t *b)
     return sums[0] + sums[1] + sums[2] + sums[3];
 }
 
-Node *get_closest_node_tree(vector<Node> &nodes, int8_t *query, int deepth)
+Node *get_closest_node_from_uncomplete_tree(vector<Node> &nodes, int8_t *query, int deepth)
 {
     float max = numeric_limits<float>::max();
     Node *closest = nullptr;
     for (Node &node : nodes)
     {
         const float distance = euclidean_distance(query, &node.points[0].descriptors[0]);
-
         if (distance < max)
         {
             max = distance;
@@ -103,7 +99,7 @@ Node *get_closest_node_tree(vector<Node> &nodes, int8_t *query, int deepth)
     }
     if (deepth > 1)
     {
-        closest = get_closest_node_tree(closest->children, query, deepth - 1);
+        closest = get_closest_node_from_uncomplete_tree(closest->children, query, deepth - 1);
     }
     return closest;
 }
@@ -125,45 +121,6 @@ Node *get_closest_node(std::vector<Node> &nodes, int8_t *query)
     return closest;
 }
 
-bool is_leaf(Node &node) { return node.children.empty(); }
-
-void print_index_levels(vector<Node> &root)
-{
-    // Standard level order traversal code
-    // using queue
-    queue<Node> q; // Create a queue
-                   // Enqueue top_level
-    for (auto &cluster : root)
-    {
-        q.push(cluster);
-    }
-    while (!q.empty())
-    {
-        int n = q.size();
-
-        // If this node has children
-        while (n > 0)
-        {
-            // Dequeue an item from queue and print it
-            Node node = q.front();
-            q.pop();
-
-            if (is_leaf(node))
-            {
-                cout << " [L: " << node.points.size() << " ]";
-            }
-            else
-                cout << " [N: " << node.children.size() << "] ";
-
-            // Enqueue all children of the dequeued item
-            for (unsigned int i = 0; i < node.children.size(); i++)
-                q.push(node.children[i]);
-            n--;
-        }
-        cout << "\n--------------\n"; // Print new line between two levels
-    }
-}
-
 Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
 {
     Node *closest_cluster = get_closest_node(nodes, query);
@@ -174,9 +131,42 @@ Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
     return closest_cluster;
 }
 
+bool is_leaf(Node &node)
+{
+    return node.children.empty();
+}
+
+void print_index_levels(vector<Node> &root)
+{
+    queue<Node> q;
+    for (auto &cluster : root)
+    {
+        q.push(cluster);
+    }
+    while (!q.empty())
+    {
+        int n = q.size();
+        while (n > 0)
+        {
+            Node node = q.front();
+            q.pop();
+            if (is_leaf(node))
+            {
+                cout << " [L: " << node.points.size() << " ]";
+            }
+            else
+                cout << " [N: " << node.children.size() << "] ";
+            for (unsigned int i = 0; i < node.children.size(); i++)
+                q.push(node.children[i]);
+            n--;
+        }
+        cout << "\n--------------\n";
+    }
+}
+
 int main()
 {
-    int L = 6;
+    int L = 3;
 
     // Open binary file
     dataset.open("spacev1b_base.i8bin", ios::in | ios::binary);
@@ -206,7 +196,7 @@ int main()
             vector<Node> current_level;
             for (int i = 0; i < cur_lvl_leaders; i++)
             {
-                current_level.push_back(get_node_from_binary(i));
+                current_level.push_back(read_node_from_binary(i));
             }
             tree.swap(current_level);
         }
@@ -214,8 +204,8 @@ int main()
         {
             for (int i = 0; i < cur_lvl_leaders; i++)
             {
-                Node current_node = get_node_from_binary(i);
-                Node *clostest_node = get_closest_node_tree(tree, &current_node.points[0].descriptors[0], cur_lvl - 1);
+                Node current_node = read_node_from_binary(i);
+                Node *clostest_node = get_closest_node_from_uncomplete_tree(tree, &current_node.points[0].descriptors[0], cur_lvl - 1);
                 clostest_node->children.push_back(current_node);
             }
         }
@@ -224,7 +214,7 @@ int main()
     // Add all points from input dataset to the index incl those duplicated in the index construction.
     for (uint32_t cur_index = 0; cur_index < num_points; cur_index++)
     {
-        Point cur_point = get_point_from_binary(cur_index);
+        Point cur_point = read_point_from_binary(cur_index);
         auto *leaf = find_nearest_leaf(cur_point.descriptors.data(), tree);
         if (cur_index != leaf->points[0].id) // Prevent adding leader twice
         {
