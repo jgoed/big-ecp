@@ -32,19 +32,18 @@ vector<uint32_t> get_random_unique_indexes(uint32_t amount, uint32_t max_index)
     vector<uint32_t> collected_samples;
     collected_samples.reserve(amount);
     unordered_set<uint32_t> visited_samples;
-    random_device random_seed;        // Will be used to obtain a seed for the random number engine.
-    mt19937 generator(random_seed()); // Standard mersenne_twister_engine seeded with rd().
-    // int start = container_size - amount;
+    random_device random_seed;
+    mt19937 generator(random_seed());
     for (int i = 0; i < amount; i++)
     {
-        uniform_int_distribution<uint32_t> distribution(0, max_index); // To-from inclusive.
-        uint32_t t = distribution(generator);
+        uniform_int_distribution<uint32_t> distribution(0, max_index); // To-from inclusive
+        uint32_t cur_rnd_num = distribution(generator);
 
-        unordered_set<uint32_t>::const_iterator iter = visited_samples.find(t);
-        if (iter == visited_samples.end()) // Not found.
+        unordered_set<uint32_t>::const_iterator iter = visited_samples.find(cur_rnd_num);
+        if (iter == visited_samples.end()) // Not found
         {
-            visited_samples.insert(t);
-            collected_samples.emplace_back(t);
+            visited_samples.insert(cur_rnd_num);
+            collected_samples.emplace_back(cur_rnd_num);
         }
         else // Found
         {
@@ -152,7 +151,7 @@ void print_index_levels(vector<Node> &root)
             q.pop();
             if (is_leaf(node))
             {
-                cout << " [L: " << node.points.size() << " ]";
+                cout << " [L: " << node.points.size() << "] ";
             }
             else
                 cout << " [N: " << node.children.size() << "] ";
@@ -179,9 +178,8 @@ int main()
     int desired_cluster_size = 512000;                                                                              // 512000 byte is default block size for SSDs
     num_leaders = ceil(num_points / (desired_cluster_size / (sizeof(int8_t) * num_dimensions + sizeof(uint32_t)))); // N/ts
 
-    // FIXME Sometimes segmentation vault
     // Generate random leaders
-    // vector<uint32_t> random_leader_indexes = get_random_unique_indexes(num_leaders, num_points-1);
+    // random_leader_indexes.at(i) vector<uint32_t> random_leader_indexes = get_random_unique_indexes(num_leaders, num_points - 1);
 
     // Tree index structure
     vector<Node> tree;
@@ -221,6 +219,34 @@ int main()
             leaf->points.emplace_back(cur_point);
         }
     }
+
+    // ofstream index("index.i8bin", ios::out | ios::binary);
+    // index.write((char *)&tree[0], tree.size() * sizeof(Node));
+    // index.close();
+
+    // queue<Node> q;
+    // for (auto &node : tree)
+    // {
+    //     q.push(node);
+    // }
+    // while (!q.empty())
+    // {
+    //     int n = q.size();
+    //     while (n > 0)
+    //     {
+    //         Node node = q.front();
+    //         cout << node.points[0].id << endl;
+    //         q.pop();
+    //         if (!is_leaf(node))
+    //         {
+    //             for (unsigned int i = 0; i < node.children.size(); i++)
+    //             {
+    //                 q.push(node.children[i]);
+    //             }
+    //         }
+    //         n--;
+    //     }
+    // }
 
     print_index_levels(tree);
 
