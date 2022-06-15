@@ -16,6 +16,8 @@ uint32_t num_points;
 uint32_t num_dimensions;
 uint32_t num_leaders;
 
+uint32_t unique_id = 0;
+
 uint32_t num_nodes_in_index = 0;
 
 struct Point
@@ -26,6 +28,7 @@ struct Point
 
 struct Node
 {
+    uint32_t id;
     vector<Node> children;
     vector<Point> points;
 };
@@ -71,6 +74,8 @@ Point read_point_from_binary(uint32_t index)
 Node read_node_from_binary(uint32_t index)
 {
     Node node;
+    node.id = unique_id;
+    unique_id++;
     node.points.push_back(read_point_from_binary(index));
     return node;
 }
@@ -168,13 +173,15 @@ void print_index_levels(vector<Node> &root)
 
 void write_node_to_binary(Node node)
 {
-    uint32_t cur_id = node.points[0].id;
+    uint32_t cur_node_id = node.id;
+    uint32_t cur_point_id = node.points[0].id;
     vector<int8_t> cur_descriptors = node.points.at(0).descriptors;
-    uint32_t cur_num_children = node.children.size();
-    vector<Node> cur_children = node.children;
-    index_file.write(reinterpret_cast<char *>(&cur_id), sizeof(uint32_t));
+    // uint32_t cur_num_children = node.children.size();
+    // vector<Node> cur_children = node.children;
+    index_file.write(reinterpret_cast<char *>(&cur_node_id), sizeof(uint32_t));
+    index_file.write(reinterpret_cast<char *>(&cur_point_id), sizeof(uint32_t));
     index_file.write(reinterpret_cast<char *>(cur_descriptors.data()), sizeof(int8_t) * node.points[0].descriptors.size());
-    index_file.write(reinterpret_cast<char *>(&cur_num_children), sizeof(cur_num_children));
+    // index_file.write(reinterpret_cast<char *>(&cur_num_children), sizeof(cur_num_children));
     num_nodes_in_index++;
 }
 
@@ -235,8 +242,8 @@ int main()
         }
     }
 
+    // Write index in binary file
     index_file.open("index.i8bin", ios::out | ios::binary);
-
     index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
 
     queue<Node> q;
@@ -252,18 +259,13 @@ int main()
             Node node = q.front();
             q.pop();
             write_node_to_binary(node);
-            // cout << "id: " << node.points[0].id << " , num_child: " << node.children.size() << " | ";
             if (!is_leaf(node))
             {
                 for (unsigned int i = 0; i < node.children.size(); i++)
                 {
                     q.push(node.children[i]);
-                    // cout << "child_id: " << node.children[i].points[0].id << ", ";
-                    write_node_to_binary(node.children[i]);
                 }
             }
-            // cout << endl;
-
             n--;
         }
     }
@@ -271,25 +273,30 @@ int main()
     index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
     index_file.close();
 
-    int teste = 0;
-
+    // Read index from binary file
     ifstream index_file_read;
     index_file_read.open("index.i8bin", ios::in | ios::binary);
     uint32_t num_nodes_to_read;
     index_file_read.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
+    vector<Node> index_nodes_read;
     for (int i = 0; i < num_nodes_to_read; i++)
     {
-        teste++;
+        uint32_t read_node_id;
+        uint32_t read_point_id;
+        vector<int8_t> read_vec(num_dimensions);
+        index_file_read.read(reinterpret_cast<char *>(&read_node_id), sizeof(uint32_t));
+        index_file_read.read(reinterpret_cast<char *>(&read_point_id), sizeof(uint32_t));
+        index_file_read.read(reinterpret_cast<char *>(read_vec.data()), sizeof(int8_t) * num_dimensions);
+        Node read_cur_node;
+        read_cur_node.id = read_node_id;
+        Point read_cur_point;
+        read_cur_point.id = read_point_id;
+        read_cur_point.descriptors = read_vec;
+        read_cur_node.points.push_back(read_cur_point);
+        index_nodes_read.push_back(read_cur_node);
     }
-    cout << teste << endl;
 
-    uint32_t testid;
-    vector<int8_t> testvec(num_dimensions);
-    uint32_t test_num_chil;
     // index_file_read.seekg(0, index_file_read.beg);
-    index_file_read.read(reinterpret_cast<char *>(&testid), sizeof(testid));
-    index_file_read.read(reinterpret_cast<char *>(testvec.data()), sizeof(int8_t) * num_dimensions);
-    index_file_read.read(reinterpret_cast<char *>(&test_num_chil), sizeof(uint32_t));
 
     // print_index_levels(tree);
 
