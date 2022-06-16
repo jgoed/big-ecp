@@ -12,6 +12,8 @@ using namespace std;
 fstream dataset;
 ofstream index_file;
 ifstream index_file_read;
+ofstream cluster_metadata;
+ofstream cluster_file;
 
 uint32_t num_points;
 uint32_t num_dimensions;
@@ -188,6 +190,35 @@ void save_node(Node node)
     }
 }
 
+vector<Node> find_all_leafs(vector<Node> &root)
+{
+    vector<Node> leafs;
+    queue<Node> q;
+    for (auto &cluster : root)
+    {
+        q.push(cluster);
+    }
+    while (!q.empty())
+    {
+        int n = q.size();
+        while (n > 0)
+        {
+            Node node = q.front();
+            q.pop();
+            if (is_leaf(node))
+            {
+                leafs.push_back(node);
+            }
+            for (unsigned int i = 0; i < node.children.size(); i++)
+            {
+                q.push(node.children[i]);
+            }
+            n--;
+        }
+    }
+    return leafs;
+}
+
 Node load_node()
 {
     already_read++;
@@ -280,6 +311,33 @@ int main()
     index_file.seekp(0, index_file.beg);
     index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
     index_file.close();
+
+    // Write leafs in binary file
+    vector<Node> leafs = find_all_leafs(tree);
+
+    cluster_metadata.open("cluster_metadata.i8bin", ios::out | ios::binary);
+    cluster_file.open("clusters.i8bin", ios::out | ios::binary);
+
+    uint32_t num_leafs = leafs.size();
+    cluster_metadata.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
+    cluster_file.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
+
+    for (auto &node : leafs)
+    {
+        uint32_t num_cluster_points = node.points.size();
+        cluster_metadata.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
+        cluster_metadata.write(reinterpret_cast<char *>(&num_cluster_points), sizeof(uint32_t));
+        cluster_file.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
+        cluster_file.write(reinterpret_cast<char *>(&num_cluster_points), sizeof(uint32_t));
+        for (int i = 0; i < num_cluster_points; i++)
+        {
+            cluster_file.write(reinterpret_cast<char *>(&node.points.at(i).id), sizeof(uint32_t));
+            cluster_file.write(reinterpret_cast<char *>(node.points.at(i).descriptors.data()), sizeof(int8_t) * num_dimensions);
+        }
+    }
+
+    cluster_metadata.close();
+    cluster_file.close();
 
     // Read index from binary file
     index_file_read.open("index.i8bin", ios::in | ios::binary);
