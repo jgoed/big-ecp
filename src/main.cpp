@@ -13,8 +13,6 @@ fstream dataset;
 ofstream index_file;
 ifstream index_file_read;
 
-uint32_t already_read = 0;
-
 uint32_t num_points;
 uint32_t num_dimensions;
 uint32_t num_leaders;
@@ -23,6 +21,7 @@ uint32_t unique_id = 0;
 uint32_t num_top_lvl_leaders;
 
 uint32_t num_nodes_in_index = 0;
+uint32_t already_read = 0;
 
 struct Point
 {
@@ -175,20 +174,6 @@ void print_index_levels(vector<Node> &root)
     }
 }
 
-void write_node_to_binary(Node node)
-{
-    uint32_t cur_node_id = node.id;
-    uint32_t cur_point_id = node.points[0].id;
-    vector<int8_t> cur_descriptors = node.points.at(0).descriptors;
-    // uint32_t cur_num_children = node.children.size();
-    // vector<Node> cur_children = node.children;
-    index_file.write(reinterpret_cast<char *>(&cur_node_id), sizeof(uint32_t));
-    index_file.write(reinterpret_cast<char *>(&cur_point_id), sizeof(uint32_t));
-    index_file.write(reinterpret_cast<char *>(cur_descriptors.data()), sizeof(int8_t) * node.points[0].descriptors.size());
-    // index_file.write(reinterpret_cast<char *>(&cur_num_children), sizeof(cur_num_children));
-    num_nodes_in_index++;
-}
-
 void save_node(Node node)
 {
     num_nodes_in_index++;
@@ -207,12 +192,10 @@ Node load_node()
 {
     already_read++;
     Node node;
-
     uint32_t read_node_id;
     uint32_t read_point_id;
     vector<int8_t> read_descriptors(num_dimensions);
     uint32_t read_num_children;
-
     index_file_read.read(reinterpret_cast<char *>(&read_node_id), sizeof(uint32_t));
     index_file_read.read(reinterpret_cast<char *>(&read_point_id), sizeof(uint32_t));
     index_file_read.read(reinterpret_cast<char *>(read_descriptors.data()), sizeof(int8_t) * num_dimensions);
@@ -226,7 +209,6 @@ Node load_node()
     {
         node.children.push_back(load_node());
     }
-
     return node;
 }
 
@@ -291,149 +273,27 @@ int main()
     // Write index in binary file
     index_file.open("index.i8bin", ios::out | ios::binary);
     index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
-
-    ///////////////////////////////////////////////TEST
-
     for (auto &node : tree)
     {
         save_node(node);
     }
-
     index_file.seekp(0, index_file.beg);
     index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
     index_file.close();
 
+    // Read index from binary file
     index_file_read.open("index.i8bin", ios::in | ios::binary);
     uint32_t num_nodes_to_read;
     index_file_read.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
-
     vector<Node> read_tree;
     for (already_read; already_read < num_nodes_to_read;)
     {
         read_tree.push_back(load_node());
     }
 
-    cout << endl;
+    // index_file_read.seekg(0, index_file_read.beg);
 
-    // uint32_t num_nodes_to_read;
-    // index_file_read.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
-    // vector<Node> index_nodes_read;
-    // for (int i = 0; i < num_nodes_to_read; i++)
-    // {
-    //     uint32_t read_node_id;
-    //     uint32_t read_point_id;
-    //     vector<int8_t> read_vec(num_dimensions);
-    //     index_file_read.read(reinterpret_cast<char *>(&read_node_id), sizeof(uint32_t));
-    //     index_file_read.read(reinterpret_cast<char *>(&read_point_id), sizeof(uint32_t));
-    //     index_file_read.read(reinterpret_cast<char *>(read_vec.data()), sizeof(int8_t) * num_dimensions);
-    //     Node read_cur_node;
-    //     read_cur_node.id = read_node_id;
-    //     Point read_cur_point;
-    //     read_cur_point.id = read_point_id;
-    //     read_cur_point.descriptors = read_vec;
-    //     read_cur_node.points.push_back(read_cur_point);
-    //     index_nodes_read.push_back(read_cur_node);
-    //     map_nodes[read_cur_node.id] = read_cur_node;
-    // }
-
-    ////////////////////////////////////////////////TEST
-
-    // vector<tuple<uint32_t, uint32_t>> edges;
-
-    // queue<Node> q;
-    // for (auto &node : tree)
-    // {
-    //     q.push(node);
-    // }
-    // while (!q.empty())
-    // {
-    //     int n = q.size();
-    //     while (n > 0)
-    //     {
-    //         Node node = q.front();
-    //         q.pop();
-    //         write_node_to_binary(node);
-    //         if (!is_leaf(node))
-    //         {
-    //             for (unsigned int i = 0; i < node.children.size(); i++)
-    //             {
-    //                 q.push(node.children[i]);
-    //                 edges.push_back({node.id, node.children[i].id});
-    //             }
-    //         }
-    //         n--;
-    //     }
-    // }
-
-    // uint32_t num_edges = edges.size();
-    // index_file.write(reinterpret_cast<char *>(&num_edges), sizeof(uint32_t));
-    // for (int i = 0; i < num_edges; i++)
-    // {
-    //     tuple<uint32_t, uint32_t> cur_edge = edges[i];
-    //     index_file.write(reinterpret_cast<char *>(&cur_edge), sizeof(tuple<uint32_t, uint32_t>));
-    //     // cout << "(" << get<0>(cur_edge) << ", " << get<1>(cur_edge) << ")" << endl;
-    // }
-
-    // index_file.seekp(0, index_file.beg);
-    // index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
-
-    // index_file.close();
-
-    // // Read index from binary file
-
-    // map<uint32_t, Node> map_nodes;
-
-    // ifstream index_file_read;
-    // index_file_read.open("index.i8bin", ios::in | ios::binary);
-    // uint32_t num_nodes_to_read;
-    // index_file_read.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
-    // vector<Node> index_nodes_read;
-    // for (int i = 0; i < num_nodes_to_read; i++)
-    // {
-    //     uint32_t read_node_id;
-    //     uint32_t read_point_id;
-    //     vector<int8_t> read_vec(num_dimensions);
-    //     index_file_read.read(reinterpret_cast<char *>(&read_node_id), sizeof(uint32_t));
-    //     index_file_read.read(reinterpret_cast<char *>(&read_point_id), sizeof(uint32_t));
-    //     index_file_read.read(reinterpret_cast<char *>(read_vec.data()), sizeof(int8_t) * num_dimensions);
-    //     Node read_cur_node;
-    //     read_cur_node.id = read_node_id;
-    //     Point read_cur_point;
-    //     read_cur_point.id = read_point_id;
-    //     read_cur_point.descriptors = read_vec;
-    //     read_cur_node.points.push_back(read_cur_point);
-    //     index_nodes_read.push_back(read_cur_node);
-    //     map_nodes[read_cur_node.id] = read_cur_node;
-    // }
-
-    // cout << map_nodes.find(1)->second.id << endl;
-
-    // vector<tuple<uint32_t, uint32_t>> read_edges;
-    // uint32_t read_num_edges;
-    // index_file_read.read(reinterpret_cast<char *>(&read_num_edges), sizeof(uint32_t));
-    // for (int i = 0; i < read_num_edges; i++)
-    // {
-    //     tuple<uint32_t, uint32_t> read_cur_edge;
-    //     index_file_read.read(reinterpret_cast<char *>(&read_cur_edge), sizeof(tuple<uint32_t, uint32_t>));
-    //     read_edges.push_back(read_cur_edge);
-    // }
-
-    // vector<Node> read_tree;
-
-    // // TODO: Save num_top_lvl_leaders in binary
-    // for (int i = 0; i < num_top_lvl_leaders; i++)
-    // {
-    //     read_tree.push_back(index_nodes_read[i]);
-    // }
-
-    // for (int i = 0; i < read_num_edges; i++)
-    // {
-    //     cout << "(" << get<0>(read_edges[i]) << ", " << get<1>(read_edges[i]) << ")" << endl;
-    // }
-
-    // // index_file_read.seekg(0, index_file_read.beg);
-
-    // // print_index_levels(tree);
+    // print_index_levels(tree);
 
     return 0;
 }
