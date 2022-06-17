@@ -1,3 +1,4 @@
+#include <bits/stdc++.h>
 #include <fstream>
 #include <iostream>
 #include <math.h>
@@ -5,24 +6,22 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <bits/stdc++.h>
 
 using namespace std;
 
 fstream dataset;
-ofstream index_file;
-ifstream index_file_read;
-ofstream cluster_metadata;
-ofstream cluster_file;
-
-uint32_t num_points;
-uint32_t num_dimensions;
-uint32_t num_leaders;
-
-uint32_t unique_id = 0;
-uint32_t num_top_lvl_leaders;
-
+uint32_t num_points = 0;
+uint32_t num_dimensions = 0;
+uint32_t num_leaders = 0;
+uint32_t unique_node_id = 0;
 uint32_t num_nodes_in_index = 0;
+ofstream ecp_index;
+ofstream ecp_cluster_metadata;
+ofstream ecp_clusters;
+
+ifstream index_file_read;
+ifstream cluster_metadata_read;
+ifstream cluster_file_read;
 uint32_t already_read = 0;
 
 struct Point
@@ -65,23 +64,23 @@ vector<uint32_t> get_random_unique_indexes(uint32_t amount, uint32_t max_index)
     return collected_samples;
 }
 
-Point read_point_from_binary(uint32_t index)
+Point read_point_from_binary(uint32_t position)
 {
     vector<int8_t> descriptors(num_dimensions);
-    dataset.seekg((sizeof(num_points) + sizeof(num_dimensions) + index * num_dimensions * sizeof(int8_t)), dataset.beg);
+    dataset.seekg((sizeof(num_points) + sizeof(num_dimensions) + position * num_dimensions * sizeof(int8_t)), dataset.beg);
     dataset.read(reinterpret_cast<char *>(descriptors.data()), sizeof(int8_t) * num_dimensions);
     Point point;
-    point.id = index;
+    point.id = position;
     point.descriptors = descriptors;
     return point;
 }
 
-Node read_node_from_binary(uint32_t index)
+Node read_node_from_binary(uint32_t position)
 {
     Node node;
-    node.id = unique_id;
-    unique_id++;
-    node.points.push_back(read_point_from_binary(index));
+    node.id = unique_node_id;
+    unique_node_id++;
+    node.points.push_back(read_point_from_binary(position));
     return node;
 }
 
@@ -96,7 +95,7 @@ float euclidean_distance(const int8_t *a, const int8_t *b)
     return sums[0] + sums[1] + sums[2] + sums[3];
 }
 
-Node *get_closest_node_from_uncomplete_tree(vector<Node> &nodes, int8_t *query, int deepth)
+Node *get_closest_node_from_uncomplete_index(vector<Node> &nodes, int8_t *query, int deepth)
 {
     float max = numeric_limits<float>::max();
     Node *closest = nullptr;
@@ -111,7 +110,7 @@ Node *get_closest_node_from_uncomplete_tree(vector<Node> &nodes, int8_t *query, 
     }
     if (deepth > 1)
     {
-        closest = get_closest_node_from_uncomplete_tree(closest->children, query, deepth - 1);
+        closest = get_closest_node_from_uncomplete_index(closest->children, query, deepth - 1);
     }
     return closest;
 }
@@ -179,11 +178,11 @@ void print_index_levels(vector<Node> &root)
 void save_node(Node node)
 {
     num_nodes_in_index++;
-    index_file.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
-    index_file.write(reinterpret_cast<char *>(&node.points.at(0).id), sizeof(uint32_t));
-    index_file.write(reinterpret_cast<char *>(node.points.at(0).descriptors.data()), sizeof(int8_t) * num_dimensions);
+    ecp_index.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
+    ecp_index.write(reinterpret_cast<char *>(&node.points.at(0).id), sizeof(uint32_t));
+    ecp_index.write(reinterpret_cast<char *>(node.points.at(0).descriptors.data()), sizeof(int8_t) * num_dimensions);
     uint32_t cur_num_children = node.children.size();
-    index_file.write(reinterpret_cast<char *>(&cur_num_children), sizeof(uint32_t));
+    ecp_index.write(reinterpret_cast<char *>(&cur_num_children), sizeof(uint32_t));
     for (int i = 0; i < node.children.size(); i++)
     {
         save_node(node.children[i]);
@@ -261,30 +260,23 @@ int main()
     // Generate random leaders
     // random_leader_indexes.at(i) vector<uint32_t> random_leader_indexes = get_random_unique_indexes(num_leaders, num_points - 1);
 
-    // Tree index structure
-    vector<Node> tree;
+    // Create index structure
+    vector<Node> index;
 
     for (int cur_lvl = 1; cur_lvl <= L; cur_lvl++)
     {
         // Calculate number of leaders for current level
         int cur_lvl_leaders = ceil(pow(num_leaders, ((1.0 / L)) * (cur_lvl)));
-
-        if (cur_lvl == 1) // If current level is top level
+        for (int i = 0; i < cur_lvl_leaders; i++)
         {
-            num_top_lvl_leaders = cur_lvl_leaders;
-            vector<Node> current_level;
-            for (int i = 0; i < cur_lvl_leaders; i++)
+            if (cur_lvl == 1)
             {
-                current_level.push_back(read_node_from_binary(i));
+                index.push_back(read_node_from_binary(i));
             }
-            tree.swap(current_level);
-        }
-        else // Every other level below top level
-        {
-            for (int i = 0; i < cur_lvl_leaders; i++)
+            else
             {
                 Node current_node = read_node_from_binary(i);
-                Node *clostest_node = get_closest_node_from_uncomplete_tree(tree, &current_node.points[0].descriptors[0], cur_lvl - 1);
+                Node *clostest_node = get_closest_node_from_uncomplete_index(index, &current_node.points[0].descriptors[0], cur_lvl - 1);
                 clostest_node->children.push_back(current_node);
             }
         }
@@ -294,64 +286,70 @@ int main()
     for (uint32_t cur_index = 0; cur_index < num_points; cur_index++)
     {
         Point cur_point = read_point_from_binary(cur_index);
-        auto *leaf = find_nearest_leaf(cur_point.descriptors.data(), tree);
+        auto *leaf = find_nearest_leaf(cur_point.descriptors.data(), index);
         if (cur_index != leaf->points[0].id) // Prevent adding leader twice
         {
             leaf->points.emplace_back(cur_point);
         }
     }
 
-    // Write index in binary file
-    index_file.open("index.i8bin", ios::out | ios::binary);
-    index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
-    for (auto &node : tree)
+    // Write index to binary file
+    ecp_index.open("index.i8bin", ios::out | ios::binary);
+    ecp_index.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
+    for (auto &node : index)
     {
         save_node(node);
     }
-    index_file.seekp(0, index_file.beg);
-    index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
-    index_file.close();
+    ecp_index.seekp(0, ecp_index.beg);
+    ecp_index.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
+    ecp_index.close();
 
-    // Write leafs in binary file
-    vector<Node> leafs = find_all_leafs(tree);
-
-    cluster_metadata.open("cluster_metadata.i8bin", ios::out | ios::binary);
-    cluster_file.open("clusters.i8bin", ios::out | ios::binary);
-
+    // Write leafs to binary file
+    ecp_cluster_metadata.open("cluster_metadata.i8bin", ios::out | ios::binary);
+    ecp_clusters.open("clusters.i8bin", ios::out | ios::binary);
+    vector<Node> leafs = find_all_leafs(index);
     uint32_t num_leafs = leafs.size();
-    cluster_metadata.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
-    cluster_file.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
-
+    ecp_cluster_metadata.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
+    ecp_clusters.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
     for (auto &node : leafs)
     {
         uint32_t num_cluster_points = node.points.size();
-        cluster_metadata.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
-        cluster_metadata.write(reinterpret_cast<char *>(&num_cluster_points), sizeof(uint32_t));
-        cluster_file.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
-        cluster_file.write(reinterpret_cast<char *>(&num_cluster_points), sizeof(uint32_t));
+        ecp_cluster_metadata.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
+        ecp_cluster_metadata.write(reinterpret_cast<char *>(&num_cluster_points), sizeof(uint32_t));
+        ecp_clusters.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
+        ecp_clusters.write(reinterpret_cast<char *>(&num_cluster_points), sizeof(uint32_t));
         for (int i = 0; i < num_cluster_points; i++)
         {
-            cluster_file.write(reinterpret_cast<char *>(&node.points.at(i).id), sizeof(uint32_t));
-            cluster_file.write(reinterpret_cast<char *>(node.points.at(i).descriptors.data()), sizeof(int8_t) * num_dimensions);
+            ecp_clusters.write(reinterpret_cast<char *>(&node.points.at(i).id), sizeof(uint32_t));
+            ecp_clusters.write(reinterpret_cast<char *>(node.points.at(i).descriptors.data()), sizeof(int8_t) * num_dimensions);
         }
     }
+    ecp_cluster_metadata.close();
+    ecp_clusters.close();
 
-    cluster_metadata.close();
-    cluster_file.close();
+    // // Read index from binary file
+    // index_file_read.open("index.i8bin", ios::in | ios::binary);
+    // uint32_t num_nodes_to_read;
+    // index_file_read.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
+    // vector<Node> read_tree;
+    // for (already_read; already_read < num_nodes_to_read;)
+    // {
+    //     read_tree.push_back(load_node());
+    // }
 
-    // Read index from binary file
-    index_file_read.open("index.i8bin", ios::in | ios::binary);
-    uint32_t num_nodes_to_read;
-    index_file_read.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
-    vector<Node> read_tree;
-    for (already_read; already_read < num_nodes_to_read;)
-    {
-        read_tree.push_back(load_node());
-    }
-
-    // index_file_read.seekg(0, index_file_read.beg);
-
-    // print_index_levels(tree);
+    // // Read cluster meta data from binary file
+    // cluster_metadata_read.open("cluster_metadata.i8bin", ios::in | ios::binary);
+    // uint32_t num_clu_node_to_read;
+    // cluster_metadata_read.read(reinterpret_cast<char *>(&num_clu_node_to_read), sizeof(uint32_t));
+    // vector<tuple<uint32_t, uint32_t>> meta;
+    // for (int i = 0; i < num_clu_node_to_read; i++)
+    // {
+    //     uint32_t id;
+    //     uint32_t n_points;
+    //     cluster_metadata_read.read(reinterpret_cast<char *>(&id), sizeof(uint32_t));
+    //     cluster_metadata_read.read(reinterpret_cast<char *>(&n_points), sizeof(uint32_t));
+    //     meta.push_back(make_tuple(id, n_points));
+    // }
 
     return 0;
 }
