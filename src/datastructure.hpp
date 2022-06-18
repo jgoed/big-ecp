@@ -5,6 +5,7 @@
 #include <vector>
 
 extern uint32_t num_dimensions;
+extern uint32_t chunk_size;
 
 struct Point
 {
