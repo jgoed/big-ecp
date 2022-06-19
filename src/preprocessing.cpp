@@ -20,6 +20,8 @@ ofstream ecp_index;
 ofstream ecp_cluster_metadata;
 ofstream ecp_clusters;
 
+map<uint32_t, uint32_t> meta_data;
+
 vector<uint32_t> get_random_unique_indexes(uint32_t amount, uint32_t max_index)
 {
     vector<uint32_t> collected_samples;
@@ -242,43 +244,50 @@ int preprocessing()
     }
 
     // Add all points from input dataset to the index incl those duplicated in the index construction.
-
     uint32_t num_chunks = num_points / chunk_size;
     for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
     {
-        // int8_t *chunk = (int8_t *)malloc(chunk_size * num_dimensions * sizeof(int8_t));
+        vector<Node> temp_index = index;
+
         int8_t *chunk = new int8_t[chunk_size * num_dimensions];
         dataset.seekg(sizeof(num_points) + sizeof(num_dimensions), dataset.beg);
         dataset.read(reinterpret_cast<char *>(chunk), chunk_size * num_dimensions * sizeof(int8_t));
 
-        // cout << "Array elements: " << endl;
-        // for (int i = 0; i < 100; i++)
-        //     cout << to_string(chunk[i]) << endl;
-
         for (uint32_t cur_pos = 0; cur_pos < chunk_size; cur_pos++)
         {
-            // Point cur_point = read_point_from_binary(cur_index);
+            // Point cur_point = read_point_from_binary(cur_pos);
             Point cur_point;
             cur_point.id = (cur_chunk * chunk_size) + cur_pos;
-            auto start = chunk[0] + cur_pos * num_dimensions;
-            auto end = chunk[0] + (cur_pos + 1) * num_dimensions;
-            cur_point.descriptors.assign(start, end);
-            auto *leaf = find_nearest_leaf(cur_point.descriptors.data(), index);
+            vector<int8_t> cur_descriptors(num_dimensions);
+            memcpy(&cur_descriptors[0], &chunk[cur_pos * num_dimensions], num_dimensions * sizeof(int8_t));
+            cur_point.descriptors = cur_descriptors;
+
+            auto *leaf = find_nearest_leaf(cur_point.descriptors.data(), temp_index);
             if (cur_pos != leaf->points[0].id) // Prevent adding leader twice
             {
                 leaf->points.emplace_back(cur_point);
             }
         }
 
+        // | num_leafs | node_id | num_points |
+
         // Write leafs to binary file
         ecp_cluster_metadata.open("cluster_metadata_" + to_string(cur_chunk) + ".i8bin", ios::out | ios::binary);
         ecp_clusters.open("clusters_" + to_string(cur_chunk) + ".i8bin", ios::out | ios::binary);
-        vector<Node> leafs = find_all_leafs(index);
+        vector<Node> leafs = find_all_leafs(temp_index);
         uint32_t num_leafs = leafs.size();
         ecp_cluster_metadata.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
         ecp_clusters.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
         for (auto &node : leafs)
         {
+            if (meta_data.find(node.id) != meta_data.end())
+            {
+                meta_data[node.id] = meta_data[node.id] + node.points.size();
+            }
+            else
+            {
+                meta_data[node.id] = node.points.size();
+            }
             uint32_t num_cluster_points = node.points.size();
             ecp_cluster_metadata.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
             ecp_cluster_metadata.write(reinterpret_cast<char *>(&num_cluster_points), sizeof(uint32_t));
@@ -292,6 +301,45 @@ int preprocessing()
         }
         ecp_cluster_metadata.close();
         ecp_clusters.close();
+    }
+
+    // Merge all chunks//////////////////////////////////////////////////////////////////////////////////////////////
+    for (auto node_id : meta_data)
+    {
+        for (int i = 0; i < num_chunks; i++)
+        {
+            vector<tuple<uint32_t, uint32_t>> meta;
+            // Read cluster meta data from binary file
+            ifstream cur_chunk_file_meta;
+            cur_chunk_file_meta.open("cluster_metadata_" + to_string(i) + ".i8bin", ios::in | ios::binary);
+            uint32_t num_clu_node_to_read;
+            cur_chunk_file_meta.read(reinterpret_cast<char *>(&num_clu_node_to_read), sizeof(uint32_t));
+            for (int i = 0; i < num_clu_node_to_read; i++)
+            {
+                uint32_t id;
+                uint32_t n_points;
+                cur_chunk_file_meta.read(reinterpret_cast<char *>(&id), sizeof(uint32_t));
+                cur_chunk_file_meta.read(reinterpret_cast<char *>(&n_points), sizeof(uint32_t));
+                meta.push_back(make_tuple(id, n_points));
+            }
+            ifstream cur_chunk_file;
+            cur_chunk_file.open("clusters_" + to_string(i) + ".i8bin", ios::in | ios::binary);
+            uint32_t off_set = 0;
+            for (auto i : meta)
+            {
+                if (!(get<0>(i) == node_id.first))
+                {
+                    off_set = off_set + get<1>(i);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            cur_chunk_file.seekg((sizeof(uint32_t)) + off_set * num_dimensions, cur_chunk_file.beg);
+            vector<int8_t> read_test_vec(num_dimensions);
+            cur_chunk_file.read(reinterpret_cast<char *>(read_test_vec.data()), sizeof(int8_t) * num_dimensions);
+        }
     }
 
     // Write index to binary file

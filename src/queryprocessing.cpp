@@ -53,7 +53,7 @@ int queryprocessing()
     }
 
     // Read cluster meta data from binary file
-    cluster_metadata_read.open("cluster_metadata.i8bin", ios::in | ios::binary);
+    cluster_metadata_read.open("cluster_metadata_0.i8bin", ios::in | ios::binary);
     uint32_t num_clu_node_to_read;
     cluster_metadata_read.read(reinterpret_cast<char *>(&num_clu_node_to_read), sizeof(uint32_t));
     vector<tuple<uint32_t, uint32_t>> meta;
