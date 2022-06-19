@@ -246,17 +246,22 @@ int preprocessing()
     uint32_t num_chunks = num_points / chunk_size;
     for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
     {
-        vector<int8_t> chunk(chunk_size * num_dimensions);
+        // int8_t *chunk = (int8_t *)malloc(chunk_size * num_dimensions * sizeof(int8_t));
+        int8_t *chunk = new int8_t[chunk_size * num_dimensions];
         dataset.seekg(sizeof(num_points) + sizeof(num_dimensions), dataset.beg);
-        dataset.read(reinterpret_cast<char *>(chunk.data()), sizeof(int8_t) * chunk_size * num_dimensions);
+        dataset.read(reinterpret_cast<char *>(chunk), chunk_size * num_dimensions * sizeof(int8_t));
+
+        // cout << "Array elements: " << endl;
+        // for (int i = 0; i < 100; i++)
+        //     cout << to_string(chunk[i]) << endl;
 
         for (uint32_t cur_pos = 0; cur_pos < chunk_size; cur_pos++)
         {
             // Point cur_point = read_point_from_binary(cur_index);
             Point cur_point;
             cur_point.id = (cur_chunk * chunk_size) + cur_pos;
-            auto start = chunk.begin() + cur_pos * num_dimensions;
-            auto end = chunk.begin() + (cur_pos + 1) * num_dimensions;
+            auto start = chunk[0] + cur_pos * num_dimensions;
+            auto end = chunk[0] + (cur_pos + 1) * num_dimensions;
             cur_point.descriptors.assign(start, end);
             auto *leaf = find_nearest_leaf(cur_point.descriptors.data(), index);
             if (cur_pos != leaf->points[0].id) // Prevent adding leader twice

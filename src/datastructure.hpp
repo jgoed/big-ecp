@@ -10,7 +10,7 @@ extern uint32_t chunk_size;
 struct Point
 {
     uint32_t id;
-    std::vector<int8_t> descriptors;
+    int8_t *descriptors;
 };
 
 struct Node
