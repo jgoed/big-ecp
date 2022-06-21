@@ -1,18 +1,18 @@
 #include "datastructure.hpp"
+#include "distance.hpp"
 #include "index.hpp"
 
-#include <fstream>
 #include <math.h>
 #include <random>
 
 using namespace std;
 
-fstream dataset;
+
 uint32_t num_points = 0;
 uint32_t num_leaders = 0;
 uint32_t unique_node_id = 0;
 uint32_t num_nodes_in_index = 0;
-fstream ecp_index;
+
 
 /**
  * Generate a given amount of random unique numbers from 0 to max_id
@@ -74,22 +74,6 @@ Node read_node_from_binary(uint32_t position)
 }
 
 /**
- * Calculate euclidean distance for two points in n dimensional space
- * @param a Point A
- * @param b Point B
- */
-float euclidean_distance(const int8_t *a, const int8_t *b)
-{
-    float sums[] = {0.0, 0.0, 0.0, 0.0};
-    for (unsigned int i = 0; i < num_dimensions; ++i)
-    {
-        float delta = a[i] - b[i];
-        sums[i % 4] += delta * delta; // Skip square_root because exact distance is not needed
-    }
-    return sums[0] + sums[1] + sums[2] + sums[3];
-}
-
-/**
  * Get the closest node from uncomplete index tree with a given deepth for a given query point
  * @param uncomplete_index Uncomplete index to search for closest node
  * @param query Query point
@@ -139,7 +123,7 @@ void save_node(Node node)
  * @param dataset_file_path File path to input dataset
  * @param L Amount of levels defingin the deepth of the tree
  */
-int create_index(string dataset_file_path, int L)
+string create_index(string dataset_file_path, int L)
 {
     // Open given input dataset binary file
     dataset.open(dataset_file_path, ios::in | ios::binary);
@@ -178,9 +162,11 @@ int create_index(string dataset_file_path, int L)
             }
         }
     }
+    dataset.close();
 
     // Write index to binary file
-    ecp_index.open("ecp_index_" + dataset_file_path, ios::out | ios::binary);
+    string index_file_path = "ecp_index_" + dataset_file_path;
+    ecp_index.open(index_file_path, ios::out | ios::binary);
     ecp_index.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
     for (auto &node : index)
     {
@@ -191,5 +177,5 @@ int create_index(string dataset_file_path, int L)
     ecp_index.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
     ecp_index.close();
 
-    return 0;
+    return index_file_path;
 }

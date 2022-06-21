@@ -1,17 +1,17 @@
 #include "datastructure.hpp"
 #include "index.hpp"
-//#include "preprocessing.hpp"
+#include "assignment.hpp"
 //#include "queryprocessing.hpp"
 
 using namespace std;
 
 int main()
 {
-    create_index("spacev1b_base.i8bin", 3);
+    string index_file_path = create_index("spacev1b_base.i8bin", 3);
 
-    //preprocessing();
+    assign_points_to_cluster("spacev1b_base.i8bin", index_file_path);
 
-    //queryprocessing();
+    // queryprocessing();
 
     return 0;
 }

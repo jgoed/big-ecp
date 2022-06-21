@@ -3,6 +3,6 @@
 
 #include <string>
 
-int create_index(std::string dataset_file_path, int L);
+std::string create_index(std::string dataset_file_path, int L);
 
 #endif
