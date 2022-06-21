@@ -40,7 +40,7 @@ Node load_node()
     return node;
 }
 
-int queryprocessing()
+int process_query()
 {
     // Read index from binary file
     index_file_read.open("index.i8bin", ios::in | ios::binary);
