@@ -10,138 +10,145 @@
 
 using namespace std;
 
-// fstream dataset;
-// fstream ecp_index;
-uint32_t already_read = 0;
+uint32_t read_nodes = 0;
 
-fstream ecp_cluster_metadata;
-fstream ecp_clusters;
-map<uint32_t, uint32_t> meta_data;
+// fstream ecp_cluster_metadata;
+// fstream ecp_clusters;
+// map<uint32_t, uint32_t> meta_data;
 
+/**
+ * Load a node from binary file and place it in in-memory index tree structure
+ */
 Node load_node()
 {
-    already_read++;
+    read_nodes++;
     Node node;
-    uint32_t read_node_id;
-    uint32_t read_point_id;
-    vector<int8_t> read_descriptors(num_dimensions);
-    uint32_t read_num_children;
-    ecp_index.read(reinterpret_cast<char *>(&read_node_id), sizeof(uint32_t));
-    ecp_index.read(reinterpret_cast<char *>(&read_point_id), sizeof(uint32_t));
-    ecp_index.read(reinterpret_cast<char *>(read_descriptors.data()), sizeof(int8_t) * num_dimensions);
-    ecp_index.read(reinterpret_cast<char *>(&read_num_children), sizeof(uint32_t));
-    node.id = read_node_id;
+    uint32_t node_id;
     Point point;
-    point.id = read_point_id;
-    point.descriptors = read_descriptors;
+    uint32_t point_id;
+    vector<int8_t> descriptors(num_dimensions);
+    uint32_t num_children;
+    ecp_index.read(reinterpret_cast<char *>(&node_id), sizeof(uint32_t));
+    ecp_index.read(reinterpret_cast<char *>(&point_id), sizeof(uint32_t));
+    ecp_index.read(reinterpret_cast<char *>(descriptors.data()), sizeof(int8_t) * num_dimensions);
+    ecp_index.read(reinterpret_cast<char *>(&num_children), sizeof(uint32_t));
+    node.id = node_id;
+    point.id = point_id;
+    point.descriptors = descriptors;
     node.points.push_back(point);
-    for (int i = 0; i < read_num_children; i++)
+    for (int i = 0; i < num_children; i++)
     {
         node.children.push_back(load_node());
     }
     return node;
 }
 
-Node *get_closest_node(std::vector<Node> &nodes, int8_t *query)
-{
-    float max = numeric_limits<float>::max();
-    Node *closest = nullptr;
-    for (Node &node : nodes)
-    {
-        const float distance = euclidean_distance(query, &node.points[0].descriptors[0]);
+// Node *get_closest_node(std::vector<Node> &nodes, int8_t *query)
+// {
+//     float max = numeric_limits<float>::max();
+//     Node *closest = nullptr;
+//     for (Node &node : nodes)
+//     {
+//         const float distance = euclidean_distance(query, &node.points[0].descriptors[0]);
 
-        if (distance < max)
-        {
-            max = distance;
-            closest = &node;
-        }
-    }
-    return closest;
-}
+//         if (distance < max)
+//         {
+//             max = distance;
+//             closest = &node;
+//         }
+//     }
+//     return closest;
+// }
 
-Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
-{
-    Node *closest_cluster = get_closest_node(nodes, query);
-    if (!closest_cluster->children.empty())
-    {
-        return find_nearest_leaf(query, closest_cluster->children);
-    }
-    return closest_cluster;
-}
+// Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
+// {
+//     Node *closest_cluster = get_closest_node(nodes, query);
+//     if (!closest_cluster->children.empty())
+//     {
+//         return find_nearest_leaf(query, closest_cluster->children);
+//     }
+//     return closest_cluster;
+// }
 
-bool is_leaf(Node &node)
-{
-    return node.children.empty();
-}
+// bool is_leaf(Node &node)
+// {
+//     return node.children.empty();
+// }
 
-void print_index_levels(vector<Node> &root)
-{
-    queue<Node> q;
-    for (auto &cluster : root)
-    {
-        q.push(cluster);
-    }
-    while (!q.empty())
-    {
-        int n = q.size();
-        while (n > 0)
-        {
-            Node node = q.front();
-            q.pop();
-            if (is_leaf(node))
-            {
-                cout << " [L: " << node.points.size() << "] ";
-            }
-            else
-                cout << " [N: " << node.children.size() << "] ";
-            for (unsigned int i = 0; i < node.children.size(); i++)
-                q.push(node.children[i]);
-            n--;
-        }
-        cout << "\n--------------\n";
-    }
-}
+// void print_index_levels(vector<Node> &root)
+// {
+//     queue<Node> q;
+//     for (auto &cluster : root)
+//     {
+//         q.push(cluster);
+//     }
+//     while (!q.empty())
+//     {
+//         int n = q.size();
+//         while (n > 0)
+//         {
+//             Node node = q.front();
+//             q.pop();
+//             if (is_leaf(node))
+//             {
+//                 cout << " [L: " << node.points.size() << "] ";
+//             }
+//             else
+//                 cout << " [N: " << node.children.size() << "] ";
+//             for (unsigned int i = 0; i < node.children.size(); i++)
+//                 q.push(node.children[i]);
+//             n--;
+//         }
+//         cout << "\n--------------\n";
+//     }
+// }
 
-vector<Node> find_all_leafs(vector<Node> &root)
-{
-    vector<Node> leafs;
-    queue<Node> q;
-    for (auto &cluster : root)
-    {
-        q.push(cluster);
-    }
-    while (!q.empty())
-    {
-        int n = q.size();
-        while (n > 0)
-        {
-            Node node = q.front();
-            q.pop();
-            if (is_leaf(node))
-            {
-                leafs.push_back(node);
-            }
-            for (unsigned int i = 0; i < node.children.size(); i++)
-            {
-                q.push(node.children[i]);
-            }
-            n--;
-        }
-    }
-    return leafs;
-}
+// vector<Node> find_all_leafs(vector<Node> &root)
+// {
+//     vector<Node> leafs;
+//     queue<Node> q;
+//     for (auto &cluster : root)
+//     {
+//         q.push(cluster);
+//     }
+//     while (!q.empty())
+//     {
+//         int n = q.size();
+//         while (n > 0)
+//         {
+//             Node node = q.front();
+//             q.pop();
+//             if (is_leaf(node))
+//             {
+//                 leafs.push_back(node);
+//             }
+//             for (unsigned int i = 0; i < node.children.size(); i++)
+//             {
+//                 q.push(node.children[i]);
+//             }
+//             n--;
+//         }
+//     }
+//     return leafs;
+// }
 
+/**
+ * Load index tree structure from binary file and assign every point in given dataset to closest cluster
+ * @param dataset_file_path Path to dataset binary file
+ * @param index_file_path Path to index binary file
+ */
 int assign_points_to_cluster(string dataset_file_path, string index_file_path)
 {
     // Read index from binary file
-    ecp_index.open("index.i8bin", ios::in | ios::binary);
+    ecp_index.open(index_file_path, ios::in | ios::binary);
     uint32_t num_nodes_to_read;
     ecp_index.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
-    vector<Node> read_tree;
-    for (already_read; already_read < num_nodes_to_read;)
+    vector<Node> index;
+    for (read_nodes; read_nodes < num_nodes_to_read;)
     {
-        read_tree.push_back(load_node());
+        index.push_back(load_node());
     }
+
     // // Add all points from input dataset to the index incl those duplicated in the index construction.
     // uint32_t num_chunks = num_points / chunk_size;
     // for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
