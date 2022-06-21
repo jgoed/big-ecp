@@ -4,4 +4,4 @@ project(big-ecp)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-add_executable(big-ecp main.cpp datastructure.cpp preprocessing.cpp queryprocessing.cpp)
+add_executable(big-ecp main.cpp datastructure.cpp index.cpp)

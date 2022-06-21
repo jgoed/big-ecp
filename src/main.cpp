@@ -1,14 +1,17 @@
 #include "datastructure.hpp"
-#include "preprocessing.hpp"
-#include "queryprocessing.hpp"
+#include "index.hpp"
+//#include "preprocessing.hpp"
+//#include "queryprocessing.hpp"
 
 using namespace std;
 
 int main()
 {
-    preprocessing();
+    create_index("spacev1b_base.i8bin", 3);
 
-    queryprocessing();
+    //preprocessing();
+
+    //queryprocessing();
 
     return 0;
 }
