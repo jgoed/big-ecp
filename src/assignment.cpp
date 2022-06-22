@@ -12,6 +12,18 @@ using namespace std;
 
 uint32_t read_nodes = 0;
 
+struct binary_point
+{
+    int8_t descriptors[100]; // FIXME: Change 100 to num_dimensions later
+};
+
+struct point_meta
+{
+    uint32_t buffer_position;
+    uint32_t point_id;
+    uint32_t cluster_id;
+};
+
 // fstream ecp_cluster_metadata;
 // fstream ecp_clusters;
 // map<uint32_t, uint32_t> meta_data;
@@ -149,7 +161,19 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
         index.push_back(load_node());
     }
 
-    // // Add all points from input dataset to the index incl those duplicated in the index construction.
+    // Allocate memory buffer
+    binary_point *chunk{new binary_point[1000000]{}};
+
+    // Open given input dataset binary file
+    dataset.open(dataset_file_path, ios::in | ios::binary);
+    // Read chunk into buffer
+    dataset.seekg((sizeof(uint32_t) + sizeof(uint32_t)), dataset.beg);
+    dataset.read(reinterpret_cast<char *>(chunk), 1000000 * sizeof(binary_point));
+
+    // point_meta *point_meta_data{new point_meta[chunk_size * num_dimensions]{}};
+
+    // Asign all points from input dataset to a cluster leaf
+
     // uint32_t num_chunks = num_points / chunk_size;
     // for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
     // {
