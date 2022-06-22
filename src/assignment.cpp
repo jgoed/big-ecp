@@ -55,32 +55,32 @@ Node load_node()
     return node;
 }
 
-// Node *get_closest_node(std::vector<Node> &nodes, int8_t *query)
-// {
-//     float max = numeric_limits<float>::max();
-//     Node *closest = nullptr;
-//     for (Node &node : nodes)
-//     {
-//         const float distance = euclidean_distance(query, &node.points[0].descriptors[0]);
+Node *get_closest_node(std::vector<Node> &nodes, int8_t *query)
+{
+    float max = numeric_limits<float>::max();
+    Node *closest = nullptr;
+    for (Node &node : nodes)
+    {
+        const float distance = euclidean_distance(query, &node.points[0].descriptors[0]);
 
-//         if (distance < max)
-//         {
-//             max = distance;
-//             closest = &node;
-//         }
-//     }
-//     return closest;
-// }
+        if (distance < max)
+        {
+            max = distance;
+            closest = &node;
+        }
+    }
+    return closest;
+}
 
-// Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
-// {
-//     Node *closest_cluster = get_closest_node(nodes, query);
-//     if (!closest_cluster->children.empty())
-//     {
-//         return find_nearest_leaf(query, closest_cluster->children);
-//     }
-//     return closest_cluster;
-// }
+Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
+{
+    Node *closest_cluster = get_closest_node(nodes, query);
+    if (!closest_cluster->children.empty())
+    {
+        return find_nearest_leaf(query, closest_cluster->children);
+    }
+    return closest_cluster;
+}
 
 // bool is_leaf(Node &node)
 // {
@@ -162,17 +162,30 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
     }
 
     // Allocate memory buffer
-    binary_point *chunk{new binary_point[1000000]{}};
+    binary_point *chunk{new binary_point[chunk_size]{}};
 
     // Open given input dataset binary file
     dataset.open(dataset_file_path, ios::in | ios::binary);
     // Read chunk into buffer
     dataset.seekg((sizeof(uint32_t) + sizeof(uint32_t)), dataset.beg);
-    dataset.read(reinterpret_cast<char *>(chunk), 1000000 * sizeof(binary_point));
+    dataset.read(reinterpret_cast<char *>(chunk), chunk_size * sizeof(binary_point));
 
-    // point_meta *point_meta_data{new point_meta[chunk_size * num_dimensions]{}};
+    point_meta *point_meta_data{new point_meta[chunk_size * num_dimensions]{}};
 
-    // Asign all points from input dataset to a cluster leaf
+    for (int i = 0; i < chunk_size; i++)
+    {
+        Node *cluster = find_nearest_leaf(chunk[i].descriptors, index);
+        point_meta_data[i].buffer_position = i;
+        point_meta_data[i].cluster_id = cluster->id;
+        point_meta_data[i].point_id = i;
+    }
+
+    // for (i = 0; i < 100; i++)
+    // {
+    //     buff_meta[i].AssignedClusterID = tree.assign(buff[i])
+    // }
+
+        // Asign all points from input dataset to a cluster leaf
 
     // uint32_t num_chunks = num_points / chunk_size;
     // for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
