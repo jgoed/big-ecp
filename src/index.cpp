@@ -7,12 +7,10 @@
 
 using namespace std;
 
-
 uint32_t num_points = 0;
 uint32_t num_leaders = 0;
 uint32_t unique_node_id = 0;
 uint32_t num_nodes_in_index = 0;
-
 
 /**
  * Generate a given amount of random unique numbers from 0 to max_id
@@ -115,6 +113,38 @@ void save_node(Node node)
     for (int i = 0; i < node.children.size(); i++)
     {
         save_node(node.children[i]);
+    }
+}
+
+/**
+ * Print all levels of index for debugging
+ * @param root Top level of index to print
+ */
+void print_index_levels(vector<Node> &root)
+{
+    queue<Node> q;
+    for (auto &cluster : root)
+    {
+        q.push(cluster);
+    }
+    while (!q.empty())
+    {
+        int n = q.size();
+        while (n > 0)
+        {
+            Node node = q.front();
+            q.pop();
+            if (node.children.empty())
+            {
+                cout << " [L: " << node.points.size() << "] ";
+            }
+            else
+                cout << " [N: " << node.children.size() << "] ";
+            for (unsigned int i = 0; i < node.children.size(); i++)
+                q.push(node.children[i]);
+            n--;
+        }
+        cout << "\n--------------\n";
     }
 }
 

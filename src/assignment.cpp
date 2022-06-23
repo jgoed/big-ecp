@@ -25,6 +25,8 @@ struct point_meta
     uint32_t cluster_id;
 };
 
+fstream ecp_chunk_file;
+
 /**
  * Load a node from binary file and place it in in-memory index tree structure
  */
@@ -78,34 +80,6 @@ Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
     }
     return closest_cluster;
 }
-
-// void print_index_levels(vector<Node> &root)
-// {
-//     queue<Node> q;
-//     for (auto &cluster : root)
-//     {
-//         q.push(cluster);
-//     }
-//     while (!q.empty())
-//     {
-//         int n = q.size();
-//         while (n > 0)
-//         {
-//             Node node = q.front();
-//             q.pop();
-//             if (node.children.empty())
-//             {
-//                 cout << " [L: " << node.points.size() << "] ";
-//             }
-//             else
-//                 cout << " [N: " << node.children.size() << "] ";
-//             for (unsigned int i = 0; i < node.children.size(); i++)
-//                 q.push(node.children[i]);
-//             n--;
-//         }
-//         cout << "\n--------------\n";
-//     }
-// }
 
 bool compare_cluster_id(point_meta p1, point_meta p2)
 {
@@ -166,16 +140,18 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
             point_meta_data[i].point_id = (chunk_size * cur_chunk + i);
         }
 
-        for (int i = 0; i < 3; i++)
-        {
-            cout << to_string(point_meta_data[i].cluster_id) << " " << to_string(point_meta_data[i].point_id) << " " << to_string(chunk[point_meta_data[i].buffer_position].descriptors[0]) << endl;
-        }
+        // for (int i = 0; i < 3; i++)
+        // {
+        //     cout << to_string(point_meta_data[i].cluster_id) << " " << to_string(point_meta_data[i].point_id) << " " << to_string(chunk[point_meta_data[i].buffer_position].descriptors[0]) << endl;
+        // }
+
         // Sort meta_data ascending after cluster_id
         sort(point_meta_data, point_meta_data + chunk_size, compare_cluster_id);
-        for (int i = 0; i < 3; i++)
-        {
-            cout << to_string(point_meta_data[i].cluster_id) << " " << to_string(point_meta_data[i].point_id) << " " << to_string(chunk[point_meta_data[i].buffer_position].descriptors[0]) << endl;
-        }
+
+        // for (int i = 0; i < 3; i++)
+        // {
+        //     cout << to_string(point_meta_data[i].cluster_id) << " " << to_string(point_meta_data[i].point_id) << " " << to_string(chunk[point_meta_data[i].buffer_position].descriptors[0]) << endl;
+        // }
 
         // Write assignments to binary
         fstream ecp_cluster;
@@ -189,45 +165,35 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
         ecp_cluster.close();
     }
 
+    // Merge all chunks
 
-    // // Merge all chunks//////////////////////////////////////////////////////////////////////////////////////////////
-    // for (auto node_id : meta_data)
-    // {
-    //     for (int i = 0; i < num_chunks; i++)
-    //     {
-    //         vector<tuple<uint32_t, uint32_t>> meta;
-    //         // Read cluster meta data from binary file
-    //         ifstream cur_chunk_file_meta;
-    //         cur_chunk_file_meta.open("cluster_metadata_" + to_string(i) + ".i8bin", ios::in | ios::binary);
-    //         uint32_t num_clu_node_to_read;
-    //         cur_chunk_file_meta.read(reinterpret_cast<char *>(&num_clu_node_to_read), sizeof(uint32_t));
-    //         for (int i = 0; i < num_clu_node_to_read; i++)
-    //         {
-    //             uint32_t id;
-    //             uint32_t n_points;
-    //             cur_chunk_file_meta.read(reinterpret_cast<char *>(&id), sizeof(uint32_t));
-    //             cur_chunk_file_meta.read(reinterpret_cast<char *>(&n_points), sizeof(uint32_t));
-    //             meta.push_back(make_tuple(id, n_points));
-    //         }
-    //         ifstream cur_chunk_file;
-    //         cur_chunk_file.open("clusters_" + to_string(i) + ".i8bin", ios::in | ios::binary);
-    //         uint32_t off_set = 0;
-    //         for (auto i : meta)
-    //         {
-    //             if (!(get<0>(i) == node_id.first))
-    //             {
-    //                 off_set = off_set + get<1>(i);
-    //             }
-    //             else
-    //             {
-    //                 break;
-    //             }
-    //         }
-    //         cur_chunk_file.seekg((sizeof(uint32_t)) + off_set * num_dimensions, cur_chunk_file.beg);
-    //         vector<int8_t> read_test_vec(num_dimensions);
-    //         cur_chunk_file.read(reinterpret_cast<char *>(read_test_vec.data()), sizeof(int8_t) * num_dimensions);
-    //     }
-    // }
+    fstream ecp_clusters;
+    ecp_clusters.open("ecp_clusters", ios::out | ios::binary);
+
+    int tst_cnt = 1;
+
+    for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
+    {
+        ecp_chunk_file.open("ecp_cluster_chunk_" + to_string(cur_chunk), ios::in | ios::binary);
+        uint32_t cur_cluster_id;
+        uint32_t cur_point_id;
+        binary_point cur_binary_point;
+        ecp_chunk_file.read((char *)&cur_cluster_id, sizeof(uint32_t));
+        ecp_chunk_file.read((char *)&cur_point_id, sizeof(uint32_t));
+        ecp_chunk_file.read((char *)&cur_binary_point, sizeof(binary_point));
+        while (cur_cluster_id == 41)
+        {
+            ecp_chunk_file.read((char *)&cur_cluster_id, sizeof(uint32_t));
+            ecp_chunk_file.read((char *)&cur_point_id, sizeof(uint32_t));
+            ecp_chunk_file.read((char *)&cur_binary_point, sizeof(binary_point));
+            if (cur_cluster_id == 41)
+            {
+                tst_cnt++;
+            }
+        }
+    }
+
+    cout << to_string(tst_cnt) << endl;
 
     return 0;
 }
