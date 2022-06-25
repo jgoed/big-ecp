@@ -34,6 +34,12 @@ struct point_meta
 
 fstream ecp_chunk_file;
 
+struct cluster_meta
+{
+    uint32_t cluster_id;
+    streampos offset;
+};
+
 /**
  * Load a node from binary file and place it in in-memory index tree structure
  */
@@ -153,20 +159,17 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
     // Read num_points from bianry file
     uint32_t num_points;
     dataset.read((char *)&num_points, sizeof(uint32_t));
-    auto pos = dataset.tellg();
-    dataset.seekg(pos);
 
     // Calculate num_chunks
     uint32_t num_chunks = num_points / chunk_size;
 
     for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
     {
-
         // Reset buffer
         memset(chunk, 0, chunk_size * sizeof(binary_point));
         memset(point_meta_data, 0, chunk_size * sizeof(point_meta));
         // Read chunk into buffer
-        dataset.seekg((sizeof(uint32_t) + sizeof(uint32_t) + (cur_chunk * chunk_size)), dataset.beg);
+        dataset.seekg((sizeof(uint32_t) + sizeof(uint32_t) + (cur_chunk * chunk_size * sizeof(binary_point))), dataset.beg);
         dataset.read(reinterpret_cast<char *>(chunk), chunk_size * sizeof(binary_point));
 
         // Asign all points from input dataset to a cluster leaf
@@ -178,18 +181,8 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
             point_meta_data[i].point_id = (chunk_size * cur_chunk + i);
         }
 
-        // for (int i = 0; i < 3; i++)
-        // {
-        //     cout << to_string(point_meta_data[i].cluster_id) << " " << to_string(point_meta_data[i].point_id) << " " << to_string(chunk[point_meta_data[i].buffer_position].descriptors[0]) << endl;
-        // }
-
         // Sort meta_data ascending after cluster_id
         sort(point_meta_data, point_meta_data + chunk_size, compare_cluster_id);
-
-        // for (int i = 0; i < 3; i++)
-        // {
-        //     cout << to_string(point_meta_data[i].cluster_id) << " " << to_string(point_meta_data[i].point_id) << " " << to_string(chunk[point_meta_data[i].buffer_position].descriptors[0]) << endl;
-        // }
 
         // Write assignments to binary
         fstream ecp_cluster;
@@ -203,56 +196,59 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
         ecp_cluster.close();
     }
 
-    vector<uint32_t> leafs = find_all_leafs(index);
-
     // Merge all chunks
+    vector<uint32_t> leafs = find_all_leafs(index);
+    vector<cluster_meta> chunk_meta_data;
+    vector<cluster_meta> ecp_cluster_meta_data;
 
     fstream ecp_clusters;
     ecp_clusters.open("ecp_clusters", ios::out | ios::binary);
 
-    vector<streampos> file_positions;
-
-    for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
-    {
-        ecp_chunk_file.open("ecp_cluster_chunk_" + to_string(cur_chunk), ios::in | ios::binary);
-        file_positions.push_back(ecp_chunk_file.tellg());
-        ecp_chunk_file.close();
-    }
+    bool debug_switch = true;
+    cluster_point debug_cpoint;
 
     for (auto leaf : leafs)
     {
-        int tst_cnt = 0;
+        cluster_meta cur_cluster_meta;
+        cur_cluster_meta.cluster_id = leaf;
+        cur_cluster_meta.offset = ecp_clusters.tellp(); // Remember starting position in binary file for current cluster id
+        ecp_cluster_meta_data.push_back(cur_cluster_meta);
+        int debug_count = 0; // Debug count for points per cluster
+
         for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
         {
             ecp_chunk_file.open("ecp_cluster_chunk_" + to_string(cur_chunk), ios::in | ios::binary);
-            ecp_chunk_file.seekg(file_positions[cur_chunk]);
-            // uint32_t cur_cluster_id;
-            // uint32_t cur_point_id;
-            // binary_point cur_binary_point;
             cluster_point cur_cluster_point;
-            // ecp_chunk_file.read((char *)&cur_cluster_id, sizeof(uint32_t));
-            // ecp_chunk_file.read((char *)&cur_point_id, sizeof(uint32_t));
-            // ecp_chunk_file.read((char *)&cur_binary_point, sizeof(binary_point));
 
-            ecp_chunk_file.read((char *)&cur_cluster_point, sizeof(cluster_point));
-            while (cur_cluster_point.cluster_id == leaf)
+            for (int i = 0; i < chunk_size; i++)
             {
-                // ecp_chunk_file.read((char *)&cur_cluster_id, sizeof(uint32_t));
-                // ecp_chunk_file.read((char *)&cur_point_id, sizeof(uint32_t));
-                // ecp_chunk_file.read((char *)&cur_binary_point, sizeof(binary_point));
-
                 ecp_chunk_file.read((char *)&cur_cluster_point, sizeof(cluster_point));
 
                 if (cur_cluster_point.cluster_id == leaf)
                 {
-                    tst_cnt++;
+
+                    if (leaf == 92 && debug_switch) // Save first point in second cluster for debugging
+                    {
+                        debug_cpoint = cur_cluster_point;
+                        debug_switch = false;
+                    }
+                    debug_count++;
+                    ecp_clusters.write(reinterpret_cast<char *>(&cur_cluster_point), sizeof(cluster_point));
                 }
             }
-            file_positions[cur_chunk] = ecp_chunk_file.tellg();
             ecp_chunk_file.close();
         }
-        cout << to_string(tst_cnt) << endl;
+
+        cout << "ID: " << to_string(leaf) << " points: " << to_string(debug_count) << endl; // Print number of points for every cluster for debugging
     }
+
+    ecp_clusters.close();
+
+    // Debug check if saving of starting postions is working
+    ecp_clusters.open("ecp_clusters", ios::in | ios::binary);
+    ecp_clusters.seekg(ecp_cluster_meta_data[1].offset);
+    cluster_point cur_cluster_point;
+    ecp_clusters.read((char *)&cur_cluster_point, sizeof(cluster_point));
 
     return 0;
 }
