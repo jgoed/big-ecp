@@ -4,4 +4,4 @@ project(big-ecp)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-add_executable(big-ecp main.cpp datastructure.cpp distance.cpp index.cpp assignment.cpp)
+add_executable(big-ecp main.cpp datastructure.cpp distance.cpp index.cpp assignment.cpp query.cpp)

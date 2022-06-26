@@ -7,11 +7,6 @@
 
 using namespace std;
 
-uint32_t num_points = 0;
-uint32_t num_leaders = 0;
-uint32_t unique_node_id = 0;
-uint32_t num_nodes_in_index = 0;
-
 /**
  * Generate a given amount of random unique numbers from 0 to max_id
  * @param amount Total amount of random unique numbers
@@ -47,11 +42,11 @@ vector<uint32_t> get_random_unique_numbers(uint32_t amount, uint32_t max_number)
  * Read one point at a given position from binary file
  * @param position Position of the point to read
  */
-Point read_point_from_binary(uint32_t position)
+Point read_point_from_binary(fstream &dataset_file, uint32_t position)
 {
     vector<int8_t> descriptors(num_dimensions);
-    dataset.seekg((sizeof(num_points) + sizeof(num_dimensions) + position * num_dimensions * sizeof(int8_t)), dataset.beg);
-    dataset.read(reinterpret_cast<char *>(descriptors.data()), sizeof(int8_t) * num_dimensions);
+    dataset_file.seekg((sizeof(uint32_t) + sizeof(uint32_t) + position * num_dimensions * sizeof(int8_t)), dataset_file.beg);
+    dataset_file.read(reinterpret_cast<char *>(descriptors.data()), sizeof(int8_t) * num_dimensions);
     Point point;
     point.id = position;
     point.descriptors = descriptors;
@@ -62,12 +57,12 @@ Point read_point_from_binary(uint32_t position)
  * Read one node with one point at a given position from binary file
  * @param position Position of the node to read
  */
-Node read_node_from_binary(uint32_t position)
+Node read_node_from_binary(fstream &dataset_file, uint32_t position, uint32_t& unique_node_id)
 {
     Node node;
     node.id = unique_node_id; // Assign every node a unique id
     unique_node_id++;
-    node.points.push_back(read_point_from_binary(position));
+    node.points.push_back(read_point_from_binary(dataset_file, position));
     return node;
 }
 
@@ -101,18 +96,18 @@ Node *get_closest_node_from_uncomplete_index(vector<Node> &uncomplete_index, int
  * Write a node and all its children to binary file
  * @param node Node to write to binary file
  */
-void save_node(Node node)
+void save_node(fstream &index_file, Node node, uint32_t & num_nodes_in_index)
 {
     num_nodes_in_index++;
-    ecp_index.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
-    ecp_index.write(reinterpret_cast<char *>(&node.points.at(0).id), sizeof(uint32_t));
-    ecp_index.write(reinterpret_cast<char *>(node.points.at(0).descriptors.data()), sizeof(int8_t) * num_dimensions);
+    index_file.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
+    index_file.write(reinterpret_cast<char *>(&node.points.at(0).id), sizeof(uint32_t));
+    index_file.write(reinterpret_cast<char *>(node.points.at(0).descriptors.data()), sizeof(int8_t) * num_dimensions);
     uint32_t cur_num_children = node.children.size();
-    ecp_index.write(reinterpret_cast<char *>(&cur_num_children), sizeof(uint32_t));
+    index_file.write(reinterpret_cast<char *>(&cur_num_children), sizeof(uint32_t));
     // If node has children
     for (int i = 0; i < node.children.size(); i++)
     {
-        save_node(node.children[i]);
+        save_node(index_file, node.children[i], num_nodes_in_index);
     }
 }
 
@@ -156,15 +151,17 @@ void print_index_levels(vector<Node> &root)
 string create_index(string dataset_file_path, int L)
 {
     // Open given input dataset binary file
-    dataset.open(dataset_file_path, ios::in | ios::binary);
+    fstream dataset_file;
+    dataset_file.open(dataset_file_path, ios::in | ios::binary);
 
     // Read metadata from binary file
-    dataset.read((char *)&num_points, sizeof(uint32_t));     // Total number of points with n demensions
-    dataset.read((char *)&num_dimensions, sizeof(uint32_t)); // Total number of dimensions for one point
+    uint32_t num_points = 0;
+    dataset_file.read((char *)&num_points, sizeof(uint32_t));     // Total number of points with n demensions
+    dataset_file.read((char *)&num_dimensions, sizeof(uint32_t)); // Total number of dimensions for one point
 
     // Calculate the overall number of leaders
     int desired_cluster_size = 512000;                                                                              // 512000 byte is default block size for SSDs
-    num_leaders = ceil(num_points / (desired_cluster_size / (sizeof(int8_t) * num_dimensions + sizeof(uint32_t)))); // N/ts
+    uint32_t num_leaders = ceil(num_points / (desired_cluster_size / (sizeof(int8_t) * num_dimensions + sizeof(uint32_t)))); // N/ts
 
     // Generate random leaders
     // NOTE: Currently not used due to make debugging easier, otherwise use this below: random_leader_ids.at(i)
@@ -172,6 +169,8 @@ string create_index(string dataset_file_path, int L)
 
     // Create index structure
     vector<Node> index;
+    uint32_t unique_node_id = 0;
+
     // Go through each level
     for (int cur_lvl = 1; cur_lvl <= L; cur_lvl++)
     {
@@ -182,30 +181,88 @@ string create_index(string dataset_file_path, int L)
         {
             if (cur_lvl == 1)
             {
-                index.push_back(read_node_from_binary(i));
+                index.push_back(read_node_from_binary(dataset_file, i, unique_node_id));
             }
             else
             {
-                Node current_node = read_node_from_binary(i);
+                Node current_node = read_node_from_binary(dataset_file, i, unique_node_id);
                 Node *clostest_node = get_closest_node_from_uncomplete_index(index, &current_node.points[0].descriptors[0], cur_lvl - 1);
                 clostest_node->children.push_back(current_node);
             }
         }
     }
-    dataset.close();
+    dataset_file.close();
 
     // Write index to binary file
-    string index_file_path = "ecp_index_" + dataset_file_path;
-    ecp_index.open(index_file_path, ios::out | ios::binary);
-    ecp_index.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
+    uint32_t num_nodes_in_index = 0;
+    string index_file_path = "ecp_index.bin";
+    fstream index_file;
+    index_file.open(index_file_path, ios::out | ios::binary);
+    index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
     for (auto &node : index)
     {
-        save_node(node);
+        save_node(index_file, node, num_nodes_in_index);
     }
-    ecp_index.seekp(0, ecp_index.beg);
+    index_file.seekp(0, index_file.beg);
     // Write total number of nodes in index at first position in binary file
-    ecp_index.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
-    ecp_index.close();
+    index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
+    index_file.close();
 
     return index_file_path;
+}
+
+/**
+ * Load a node from binary file and place it in in-memory index tree structure
+ */
+Node load_node(fstream &index_file, uint32_t &read_nodes)
+{
+    read_nodes++;
+
+    Node node;
+    uint32_t node_id;
+    Point point;
+    uint32_t point_id;
+    vector<int8_t> descriptors(num_dimensions);
+    uint32_t num_children;
+
+    index_file.read(reinterpret_cast<char *>(&node_id), sizeof(uint32_t));
+    index_file.read(reinterpret_cast<char *>(&point_id), sizeof(uint32_t));
+    index_file.read(reinterpret_cast<char *>(descriptors.data()), sizeof(int8_t) * num_dimensions);
+    index_file.read(reinterpret_cast<char *>(&num_children), sizeof(uint32_t));
+
+    node.id = node_id;
+    point.id = point_id;
+    point.descriptors = descriptors;
+
+    node.points.push_back(point);
+    for (int i = 0; i < num_children; i++)
+    {
+        node.children.push_back(load_node(index_file, read_nodes));
+    }
+
+    return node;
+}
+
+/**
+ * Load index structure from binary file
+ */
+vector<Node> load_index(string index_file_path)
+{
+    fstream index_file;
+    index_file.open(index_file_path, ios::in | ios::binary);
+
+    uint32_t num_nodes_to_read;
+    index_file.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
+
+    vector<Node> index;
+    uint32_t read_nodes = 0;
+
+    for (read_nodes; read_nodes < num_nodes_to_read;)
+    {
+        index.push_back(load_node(index_file, read_nodes));
+    }
+
+    index_file.close();
+
+    return index;
 }
