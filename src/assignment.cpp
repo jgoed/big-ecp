@@ -2,23 +2,18 @@
 #include "distance.hpp"
 
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <math.h>
 #include <random>
+#include <stdio.h>
 #include <string>
 #include <sstream>
 
 using namespace std;
 
 uint32_t read_nodes = 0;
-
-struct cluster_point
-{
-    uint32_t cluster_id;
-    uint32_t point_id;
-    int8_t descriptor[100];
-};
 
 struct binary_point
 {
@@ -32,12 +27,17 @@ struct point_meta
     uint32_t cluster_id;
 };
 
-fstream ecp_chunk_file;
-
 struct cluster_meta
 {
     uint32_t cluster_id;
     streampos offset;
+};
+
+struct cluster_point
+{
+    uint32_t cluster_id;
+    uint32_t point_id;
+    int8_t descriptor[100];
 };
 
 /**
@@ -67,6 +67,11 @@ Node load_node()
     return node;
 }
 
+/**
+ * Retrun closest node to a query point from a given vector of nodes
+ * @param nodes Vector of nodes to search for closest node
+ * @param query Query point
+ */
 Node *get_closest_node(std::vector<Node> &nodes, int8_t *query)
 {
     float max = numeric_limits<float>::max();
@@ -84,6 +89,11 @@ Node *get_closest_node(std::vector<Node> &nodes, int8_t *query)
     return closest;
 }
 
+/**
+ * Find the nearest leaf for a given query point
+ * @param query Query point
+ * @param nodes Top level for index to find nearest leaf from
+ */
 Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
 {
     Node *closest_cluster = get_closest_node(nodes, query);
@@ -94,6 +104,11 @@ Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
     return closest_cluster;
 }
 
+/**
+ * Check if one point id is greater then another
+ * @param p1 First point
+ * @param p2 Second point
+ */
 bool compare_cluster_id(point_meta p1, point_meta p2)
 {
     if (p1.cluster_id < p2.cluster_id)
@@ -103,6 +118,10 @@ bool compare_cluster_id(point_meta p1, point_meta p2)
     return false;
 }
 
+/**
+ * Find all leafs in a given index tree structure
+ * @param root Top level of index to search for all leafs
+ */
 vector<uint32_t> find_all_leafs(vector<Node> &root)
 {
     vector<uint32_t> leaf_ids;
@@ -141,7 +160,7 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
 {
     // Read index from binary file
     ecp_index.open(index_file_path, ios::in | ios::binary);
-    uint32_t num_nodes_to_read;
+    uint32_t num_nodes_to_read; // Number of nodes of the index
     ecp_index.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
     vector<Node> index;
     for (read_nodes; read_nodes < num_nodes_to_read;)
@@ -150,29 +169,29 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
     }
 
     // Allocate memory buffer
-    binary_point *chunk{new binary_point[chunk_size]{}};
-    point_meta *point_meta_data{new point_meta[chunk_size]{}};
+    binary_point *chunk{new binary_point[chunk_size]{}};       // Buffer for data points
+    point_meta *point_meta_data{new point_meta[chunk_size]{}}; // Meta data for each data point in buffer
 
     // Open given input dataset binary file
     dataset.open(dataset_file_path, ios::in | ios::binary);
 
-    // Read num_points from bianry file
+    // Read total number of points from bianry file
     uint32_t num_points;
     dataset.read((char *)&num_points, sizeof(uint32_t));
 
-    // Calculate num_chunks
+    // Calculate total number of chunks needed
     uint32_t num_chunks = num_points / chunk_size;
 
     for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
     {
-        // Reset buffer
-        memset(chunk, 0, chunk_size * sizeof(binary_point));
-        memset(point_meta_data, 0, chunk_size * sizeof(point_meta));
+        memset(chunk, 0, chunk_size * sizeof(binary_point));         // Reset buffer
+        memset(point_meta_data, 0, chunk_size * sizeof(point_meta)); // Reset meta data for buffer
+
         // Read chunk into buffer
         dataset.seekg((sizeof(uint32_t) + sizeof(uint32_t) + (cur_chunk * chunk_size * sizeof(binary_point))), dataset.beg);
         dataset.read(reinterpret_cast<char *>(chunk), chunk_size * sizeof(binary_point));
 
-        // Asign all points from input dataset to a cluster leaf
+        // Asign all points from chunk to a cluster leaf
         for (int i = 0; i < chunk_size; i++)
         {
             Node *cluster = find_nearest_leaf(chunk[i].descriptors, index);
@@ -181,10 +200,10 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
             point_meta_data[i].point_id = (chunk_size * cur_chunk + i);
         }
 
-        // Sort meta_data ascending after cluster_id
+        // Sort chunk meta data ascending after cluster_id
         sort(point_meta_data, point_meta_data + chunk_size, compare_cluster_id);
 
-        // Write assignments to binary
+        // Write assignments to binary chunk
         fstream ecp_cluster;
         ecp_cluster.open("ecp_cluster_chunk_" + to_string(cur_chunk), ios::out | ios::binary);
         for (int i = 0; i < chunk_size; i++)
@@ -197,58 +216,47 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path)
     }
 
     // Merge all chunks
-    vector<uint32_t> leafs = find_all_leafs(index);
-    vector<cluster_meta> chunk_meta_data;
-    vector<cluster_meta> ecp_cluster_meta_data;
+    vector<uint32_t> leafs = find_all_leafs(index); // All cluster leaf ids in index
+    vector<cluster_meta> ecp_cluster_meta_data;     // Meta data describing final database file of cluster assignments
 
     fstream ecp_clusters;
     ecp_clusters.open("ecp_clusters", ios::out | ios::binary);
+    fstream ecp_chunk_file;
 
-    bool debug_switch = true;
-    cluster_point debug_cpoint;
-
+    // For every leaf in the index tree
     for (auto leaf : leafs)
     {
         cluster_meta cur_cluster_meta;
-        cur_cluster_meta.cluster_id = leaf;
-        cur_cluster_meta.offset = ecp_clusters.tellp(); // Remember starting position in binary file for current cluster id
-        ecp_cluster_meta_data.push_back(cur_cluster_meta);
-        int debug_count = 0; // Debug count for points per cluster
+        cur_cluster_meta.cluster_id = leaf;                // Remeber cluster id
+        cur_cluster_meta.offset = ecp_clusters.tellp();    // Remember starting position in binary file for current cluster id
+        ecp_cluster_meta_data.push_back(cur_cluster_meta); // Save meta data for current cluster
 
+        // Search every chunk file for all points assigned to current leaf
         for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
         {
             ecp_chunk_file.open("ecp_cluster_chunk_" + to_string(cur_chunk), ios::in | ios::binary);
             cluster_point cur_cluster_point;
 
+            // Search every point in chunk file
             for (int i = 0; i < chunk_size; i++)
             {
                 ecp_chunk_file.read((char *)&cur_cluster_point, sizeof(cluster_point));
-
-                if (cur_cluster_point.cluster_id == leaf)
+                if (cur_cluster_point.cluster_id == leaf) // If point is assigned to current leaf
                 {
-
-                    if (leaf == 92 && debug_switch) // Save first point in second cluster for debugging
-                    {
-                        debug_cpoint = cur_cluster_point;
-                        debug_switch = false;
-                    }
-                    debug_count++;
                     ecp_clusters.write(reinterpret_cast<char *>(&cur_cluster_point), sizeof(cluster_point));
                 }
             }
             ecp_chunk_file.close();
         }
-
-        cout << "ID: " << to_string(leaf) << " points: " << to_string(debug_count) << endl; // Print number of points for every cluster for debugging
     }
 
     ecp_clusters.close();
 
-    // Debug check if saving of starting postions is working
-    ecp_clusters.open("ecp_clusters", ios::in | ios::binary);
-    ecp_clusters.seekg(ecp_cluster_meta_data[1].offset);
-    cluster_point cur_cluster_point;
-    ecp_clusters.read((char *)&cur_cluster_point, sizeof(cluster_point));
+    // Delete all chunk files
+    for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
+    {
+        filesystem::remove("ecp_cluster_chunk_" + to_string(cur_chunk));
+    }
 
     return 0;
 }
