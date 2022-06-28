@@ -26,12 +26,6 @@ struct point_meta
     uint32_t cluster_id;
 };
 
-struct cluster_meta
-{
-    uint32_t cluster_id;
-    streampos offset;
-};
-
 struct cluster_point
 {
     uint32_t cluster_id;
@@ -129,7 +123,7 @@ vector<uint32_t> find_all_leafs(vector<Node> &root)
  * @param index_file_path Path to index binary file
  * @param chunk_size Number of points per chunk
  */
-int assign_points_to_cluster(string dataset_file_path, string index_file_path, uint32_t chunk_size)
+string assign_points_to_cluster(string dataset_file_path, string index_file_path, uint32_t chunk_size)
 {
     // Read index from binary file
     vector<Node> index = load_index(index_file_path);
@@ -182,14 +176,14 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path, u
         chunk_file.close();
     }
 
-    delete [] chunk;
-    delete [] point_meta_data;
+    delete[] chunk;
+    delete[] point_meta_data;
 
     dataset_file.close();
 
     // Merge all chunks
     vector<uint32_t> leafs = find_all_leafs(index); // All cluster leaf ids in index
-    vector<cluster_meta> ecp_cluster_meta_data;     // Meta data describing final database file of cluster assignments
+    vector<Cluster_meta> ecp_cluster_meta_data;     // Meta data describing final database file of cluster assignments
 
     fstream cluster_file;
     cluster_file.open("ecp_clusters.bin", ios::out | ios::binary);
@@ -198,10 +192,10 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path, u
     // For every leaf in the index tree
     for (auto leaf : leafs)
     {
-        cluster_meta cur_cluster_meta;
-        cur_cluster_meta.cluster_id = leaf;                // Remeber cluster id
-        cur_cluster_meta.offset = cluster_file.tellp();    // Remember starting position in binary file for current cluster id
-        ecp_cluster_meta_data.push_back(cur_cluster_meta); // Save meta data for current cluster
+        Cluster_meta cur_cluster_meta;
+        cur_cluster_meta.cluster_id = leaf;             // Remeber cluster id
+        cur_cluster_meta.offset = cluster_file.tellp(); // Remember starting position in binary file for current cluster id
+        num_points = 0;
 
         // Search every chunk file for all points assigned to current leaf
         for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
@@ -216,13 +210,34 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path, u
                 if (cur_cluster_point.cluster_id == leaf) // If point is assigned to current leaf
                 {
                     cluster_file.write(reinterpret_cast<char *>(&cur_cluster_point), sizeof(cluster_point));
+                    num_points++;
                 }
             }
             chunk_file.close();
         }
+        cur_cluster_meta.num_points_in_leaf = num_points;
+        ecp_cluster_meta_data.push_back(cur_cluster_meta); // Save meta data for current cluster
     }
 
     cluster_file.close();
+
+    // Write cluster meta data to binary file
+    uint32_t num_leafs = leafs.size();
+    fstream cluster_meta_file;
+    string meta_data_file_path = "ecp_cluster_meta.bin";
+    cluster_meta_file.open(meta_data_file_path, ios::out | ios::binary);
+    cluster_meta_file.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
+    for (int i = 0; i < num_leafs; i++)
+    {
+        // cluster_meta cur_met = ecp_cluster_meta_data.at(i);
+        uint32_t cur_id = ecp_cluster_meta_data.at(i).cluster_id;
+        uint32_t cur_num_points_in_leaf = ecp_cluster_meta_data.at(i).num_points_in_leaf;
+        uint32_t cur_offset = ecp_cluster_meta_data.at(i).offset;
+        cluster_meta_file.write(reinterpret_cast<char *>(&cur_id), sizeof(uint32_t));
+        cluster_meta_file.write(reinterpret_cast<char *>(&cur_num_points_in_leaf), sizeof(uint32_t));
+        cluster_meta_file.write(reinterpret_cast<char *>(&cur_offset), sizeof(uint32_t));
+    }
+    cluster_meta_file.close();
 
     // Delete all chunk files
     for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
@@ -230,5 +245,5 @@ int assign_points_to_cluster(string dataset_file_path, string index_file_path, u
         filesystem::remove("ecp_chunk_" + to_string(cur_chunk) + ".bin");
     }
 
-    return 0;
+    return meta_data_file_path;
 }

@@ -19,4 +19,11 @@ struct Node
     std::vector<Point> points;
 };
 
+struct Cluster_meta
+{
+    uint32_t cluster_id;
+    uint32_t num_points_in_leaf;
+    uint32_t offset;
+};
+
 #endif
