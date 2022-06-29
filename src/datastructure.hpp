@@ -4,19 +4,32 @@
 #include <bits/stdc++.h>
 #include <vector>
 
-extern uint32_t num_dimensions;
+extern uint32_t global_num_dimensions;
+extern uint32_t global_point_size;
 
 struct Point
 {
     uint32_t id;
-    std::vector<int8_t> descriptors;
+    int8_t descriptors[100];
 };
 
 struct Node
 {
     uint32_t id;
+    Point leader;
     std::vector<Node> children;
-    std::vector<Point> points;
+};
+
+struct Binary_point
+{
+    int8_t descriptors[100];
+};
+
+struct Point_meta
+{
+    uint32_t buffer_position;
+    uint32_t point_id;
+    uint32_t cluster_id;
 };
 
 struct Cluster_meta
