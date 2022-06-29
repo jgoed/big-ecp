@@ -255,7 +255,6 @@ vector<Cluster_meta> load_meta_data(string meta_data_file_path)
     return cluster_meta_data;
 }
 
-
 void load_ground_truth()
 {
     fstream ground_truth_file;
@@ -283,7 +282,35 @@ void load_ground_truth()
         ground_truth_file.read(reinterpret_cast<char *>(dis.data()), sizeof(float) * num_knn);
         dists.push_back(dis);
     }
+}
 
+vector<Cluster_point> load_leaf(string cluster_file_path, vector<Cluster_meta> cluster_meta_data, uint32_t leaf_id)
+{
+    Cluster_meta leaf_meta_data;
+    for (auto cur_cluster_meta : cluster_meta_data)
+    {
+        if (cur_cluster_meta.cluster_id == leaf_id)
+        {
+            leaf_meta_data = cur_cluster_meta;
+        }
+    }
+
+    fstream cluster_file;
+    cluster_file.open(cluster_file_path, ios::in | ios::binary);
+    cluster_file.seekg(leaf_meta_data.offset, cluster_file.beg);
+
+    vector<Cluster_point> points_in_leaf;
+
+    for (int i = 0; i < leaf_meta_data.num_points_in_leaf; i++)
+    {
+        Cluster_point cur_cluster_point;
+        cluster_file.read((char *)&cur_cluster_point, sizeof(Cluster_point));
+        points_in_leaf.push_back(cur_cluster_point);
+    }
+
+    cluster_file.close();
+    
+    return points_in_leaf;
 }
 
 int process_query(string query_file_path, string index_file_path, string meta_data_file_path)

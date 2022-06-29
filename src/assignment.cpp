@@ -26,13 +26,6 @@ struct point_meta
     uint32_t cluster_id;
 };
 
-struct cluster_point
-{
-    uint32_t cluster_id;
-    uint32_t point_id;
-    int8_t descriptor[100];
-};
-
 /**
  * Retrun closest node to a query point from a given vector of nodes
  * @param nodes Vector of nodes to search for closest node
@@ -201,15 +194,15 @@ string assign_points_to_cluster(string dataset_file_path, string index_file_path
         for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
         {
             chunk_file.open("ecp_chunk_" + to_string(cur_chunk) + ".bin", ios::in | ios::binary);
-            cluster_point cur_cluster_point;
+            Cluster_point cur_cluster_point;
 
             // Search every point in chunk file
             for (int i = 0; i < chunk_size; i++)
             {
-                chunk_file.read((char *)&cur_cluster_point, sizeof(cluster_point));
+                chunk_file.read((char *)&cur_cluster_point, sizeof(Cluster_point));
                 if (cur_cluster_point.cluster_id == leaf) // If point is assigned to current leaf
                 {
-                    cluster_file.write(reinterpret_cast<char *>(&cur_cluster_point), sizeof(cluster_point));
+                    cluster_file.write(reinterpret_cast<char *>(&cur_cluster_point), sizeof(Cluster_point));
                     num_points++;
                 }
             }

@@ -26,4 +26,11 @@ struct Cluster_meta
     uint32_t offset;
 };
 
+struct Cluster_point
+{
+    uint32_t cluster_id;
+    uint32_t point_id;
+    int8_t descriptor[100];
+};
+
 #endif
