@@ -11,7 +11,7 @@ vector<Cluster_meta> cluster_meta_data;
 void load_ground_truth()
 {
     fstream ground_truth_file;
-    ground_truth_file.open("gt100_private_query_30k.bin", ios::in | ios::binary);
+    ground_truth_file.open("msspacev-10M", ios::in | ios::binary);
 
     uint32_t num_queries = 0;
     uint32_t num_knn = 0;
