@@ -8,36 +8,6 @@ using namespace std;
 
 vector<Cluster_meta> cluster_meta_data;
 
-void load_ground_truth()
-{
-    fstream ground_truth_file;
-    ground_truth_file.open("msspacev-10M", ios::in | ios::binary);
-
-    uint32_t num_queries = 0;
-    uint32_t num_knn = 0;
-    ground_truth_file.read((char *)&num_queries, sizeof(uint32_t));
-    ground_truth_file.read((char *)&num_knn, sizeof(uint32_t));
-
-    vector<vector<uint32_t>> knns;
-
-    for (int i = 0; i < num_queries; i++)
-    {
-        vector<uint32_t> ids(num_knn);
-        ground_truth_file.read(reinterpret_cast<char *>(ids.data()), sizeof(uint32_t) * num_knn);
-        knns.push_back(ids);
-    }
-
-    vector<vector<float>> dists;
-
-    for (int i = 0; i < num_queries; i++)
-    {
-        vector<float> dis(num_knn);
-        ground_truth_file.read(reinterpret_cast<char *>(dis.data()), sizeof(float) * num_knn);
-        dists.push_back(dis);
-    }
-    cout << "done" << endl;
-}
-
 bool smallest_distance(pair<unsigned int, float> &a, pair<unsigned int, float> &b)
 {
     return a.second < b.second;
@@ -179,7 +149,7 @@ vector<Node *> find_b_nearest_clusters(vector<Node> &root, int8_t *&query, unsig
     return b_best;
 }
 
-vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, int8_t *&query, const unsigned int k, const unsigned int b = 1, unsigned int L = 1)
+vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, int8_t *&query, const unsigned int k, const unsigned int b, unsigned int L)
 {
     vector<Node *> b_nearest_clusters{find_b_nearest_clusters(root, query, b, L)};
     vector<pair<unsigned int, float>> k_nearest_points;
@@ -192,9 +162,9 @@ vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, int8_t
     return k_nearest_points;
 }
 
-pair<vector<unsigned int>, vector<float>> query(vector<Node> &index, int8_t *query, unsigned int k)
+pair<vector<unsigned int>, vector<float>> query(vector<Node> &index, int8_t *query, unsigned int k, int b, int L)
 {
-    auto nearest_points = k_nearest_neighbors(index, query, k, 5, 3);
+    auto nearest_points = k_nearest_neighbors(index, query, k, b, L);
     vector<unsigned int> nearest_indexes = {};
     vector<float> nearest_dist = {};
     for (auto it = make_move_iterator(nearest_points.begin()), end = make_move_iterator(nearest_points.end()); it != end; ++it)
@@ -239,7 +209,7 @@ vector<Cluster_meta> load_meta_data(string meta_data_file_path)
     return cluster_meta_data;
 }
 
-int process_query(string query_file_path, string index_file_path, string meta_data_file_path)
+int process_query(string query_file_path, string index_file_path, string meta_data_file_path, int k, int b, int L)
 {
     // Load index from binary file
     vector<Node> index = load_index(index_file_path);
@@ -250,9 +220,7 @@ int process_query(string query_file_path, string index_file_path, string meta_da
     // Load queries from binary file
     vector<Point> queries = load_queries(query_file_path);
 
-    auto result = query(index, queries[0].descriptors, 50);
-
-    load_ground_truth();
+    auto result = query(index, queries[0].descriptors, k, b, L);
 
     return 0;
 }
