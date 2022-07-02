@@ -8,7 +8,7 @@ using namespace std;
 void load_ground_truth()
 {
     fstream ground_truth_file;
-    ground_truth_file.open("msspacev-10M", ios::in | ios::binary);
+    ground_truth_file.open("../data/msspacev-10M", ios::in | ios::binary);
 
     uint32_t num_queries = 0;
     uint32_t num_knn = 0;
@@ -37,12 +37,12 @@ void load_ground_truth()
 
 int main()
 {
-    string dataset_file_path = "spacev1b_base_1M.i8bin";
+    string dataset_file_path = "../data/spacev1b_base_1M.i8bin";
     int L = 3;                         // Number of index levels
     int desired_cluster_size = 512000; // 512000 byte is default block size for SSDs
     uint32_t chunk_size = 200000;
 
-    string query_file_path = "query.i8bin";
+    string query_file_path = "../data/query.i8bin";
     int k = 10;
     int b = 1;
 
