@@ -158,7 +158,7 @@ string create_index(string dataset_file_path, int L, int desired_cluster_size)
 
     // Write index to binary file
     uint32_t num_nodes_in_index = 0;
-    string index_file_path = "ecp_index.bin";
+    string index_file_path = "../data/ecp_index.bin";
     fstream index_file;
     index_file.open(index_file_path, ios::out | ios::binary);
     index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));

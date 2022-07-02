@@ -61,7 +61,7 @@ void scan_leaf_node(int8_t *&query, uint32_t &cluster_id, const unsigned int k, 
     {
         max_distance = nearest_points[index_to_max_element(nearest_points)].second;
     }
-    vector<Cluster_point> points = load_leaf("ecp_clusters.bin", cluster_meta_data, cluster_id);
+    vector<Cluster_point> points = load_leaf("../data/ecp_clusters.bin", cluster_meta_data, cluster_id);
     for (Cluster_point &point : points)
     {
         if (nearest_points.size() < k)
