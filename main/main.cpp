@@ -1,7 +1,4 @@
-#include "datastructure.hpp"
-#include "index.hpp"
-#include "assignment.hpp"
-#include "query.hpp"
+#include <ecp/ecp.hpp>
 
 using namespace std;
 

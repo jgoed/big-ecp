@@ -1,6 +1,7 @@
 #ifndef INDEX_HPP
 #define INDEX_HPP
 
+#include <ecp/datastructure.hpp>
 #include <string>
 #include <vector>
 

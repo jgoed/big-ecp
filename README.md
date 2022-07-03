@@ -1,5 +1,13 @@
 # big-ecp
 
+## Using cmake
+```
+mkdir build
+cd build
+cmake ../src/
+make
+```
+
 ## Structure
 
 ### main.cpp
