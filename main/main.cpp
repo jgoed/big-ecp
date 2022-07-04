@@ -1,5 +1,10 @@
 #include <ecp/ecp.hpp>
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+
 using namespace std;
 
 void load_ground_truth()
@@ -34,7 +39,7 @@ void load_ground_truth()
 
 int main()
 {
-    string dataset_file_path = "../data/spacev1b_base_1M.i8bin";
+    string dataset_file_path = "../../data/spacev1b_base_1M.i8bin";
     int L = 3;                         // Number of index levels
     int desired_cluster_size = 512000; // 512000 byte is default block size for SSDs
     uint32_t chunk_size = 200000;
@@ -43,9 +48,9 @@ int main()
     int k = 10;
     int b = 1;
 
-    string index_file_path = create_index(dataset_file_path, L, desired_cluster_size);
-    string meta_data_file_path = assign_points_to_cluster(dataset_file_path, index_file_path, chunk_size);
-    process_query(query_file_path, index_file_path, meta_data_file_path, k, b, L);
+    string index_file_path = ecp::ecp_create_index(dataset_file_path, L, desired_cluster_size);
+    string meta_data_file_path = ecp::ecp_assign_points_to_cluster(dataset_file_path, index_file_path, chunk_size);
+    ecp::ecp_process_query(query_file_path, index_file_path, meta_data_file_path, k, b, L);
 
     load_ground_truth();
 

@@ -1,6 +1,6 @@
-#include <ecp/datastructure.hpp>
-#include <ecp/distance.hpp>
-#include <ecp/index.hpp>
+#include "datastructure.hpp"
+#include "distance.hpp"
+#include "index.hpp"
 
 #include <algorithm>
 #include <filesystem>

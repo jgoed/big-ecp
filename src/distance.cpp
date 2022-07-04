@@ -1,5 +1,5 @@
-#include <ecp/datastructure.hpp>
-#include <ecp/distance.hpp>
+#include "datastructure.hpp"
+#include "distance.hpp"
 
 /**
  * Calculate euclidean distance for two points in n dimensional space

@@ -1,26 +1,28 @@
-# file(GLOB SOURCE_LIST CONFIGURE_DEPENDS "${ECP_SOURCE_DIR}/src/ecp/*.cpp")
-# file(GLOB HEADER_LIST CONFIGURE_DEPENDS "${ECP_SOURCE_DIR}/src/ecp/*.hpp")
+project(ecp_lib
+    DESCRIPTION "Lib of ecp"
+    VERSION 1.0
+)
 
-# add_library(ecpLib )
+add_library(${PROJECT_NAME}
+    SHARED
+        assignment.cpp
+        datastructure.cpp
+        distance.cpp
+        ecp.cpp
+        index.hpp
+        query.hpp
+        assignment.hpp
+        datastructure.hpp
+        distance.hpp
+        index.cpp
+        query.cpp
+)
 
-# target_include_directories(ecpLib
-#     PUBLIC
-#         ../include/
-#         ./
-# )
-
-# target_link_libraries(ecpLib)
-
-
-# Note that headers are optional, and do not affect add_library, but they will not
-# show up in IDEs unless they are listed in add_library.
-
-# Optionally glob, but only for CMake 3.12 or later:
-# file(GLOB HEADER_LIST CONFIGURE_DEPENDS "${ModernCMakeExample_SOURCE_DIR}/include/modern/*.hpp")
-set(HEADER_LIST "${ecp_SOURCE_DIR}/include/ecp/ecp.hpp")
-
-# Make an automatic library - will be static or dynamic based on user setting
-add_library(ecp ecp.cpp ${HEADER_LIST} datastructure.cpp distance.cpp index.cpp assignment.cpp query.cpp)
-
-# We need this directory, and users of our library will need it too
-target_include_directories(ecp PUBLIC ../include)
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        # where the library itself will look for its internal headers
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+    PUBLIC
+        # where top-level project will look for the library's public headers
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)

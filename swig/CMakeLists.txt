@@ -21,5 +21,5 @@ target_include_directories(ecp_wrapper
 swig_link_libraries(ecp_wrapper
   PUBLIC
     ${PYTHON_LIBRARIES}
-    ecp
+    ecp_lib
 )
