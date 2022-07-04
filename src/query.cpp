@@ -61,7 +61,7 @@ void scan_leaf_node(int8_t *&query, uint32_t &cluster_id, const unsigned int k, 
     {
         max_distance = nearest_points[index_to_max_element(nearest_points)].second;
     }
-    vector<Cluster_point> points = load_leaf("../data/ecp_clusters.bin", cluster_meta_data, cluster_id);
+    vector<Cluster_point> points = load_leaf("../../data/ecp_clusters.bin", cluster_meta_data, cluster_id);
     for (Cluster_point &point : points)
     {
         if (nearest_points.size() < k)
@@ -209,7 +209,7 @@ vector<Cluster_meta> load_meta_data(string meta_data_file_path)
     return cluster_meta_data;
 }
 
-int process_query(string query_file_path, string index_file_path, string meta_data_file_path, int k, int b, int L)
+std::pair<std::vector<unsigned int>, std::vector<float>> process_query(string query_file_path, string index_file_path, string meta_data_file_path, int k, int b, int L)
 {
     // Load index from binary file
     vector<Node> index = load_index(index_file_path);
@@ -222,5 +222,5 @@ int process_query(string query_file_path, string index_file_path, string meta_da
 
     auto result = query(index, queries[0].descriptors, k, b, L);
 
-    return 0;
+    return result;
 }

@@ -12,7 +12,7 @@
 // extern uint32_t global_point_size;
 
 
-%module eCP_wrapper
+%module ecp_wrapper
 %{
 #include "../include/ecp/ecp.hpp"
 %}
