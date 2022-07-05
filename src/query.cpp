@@ -61,7 +61,7 @@ void scan_leaf_node(int8_t *&query, uint32_t &cluster_id, const unsigned int k, 
     {
         max_distance = nearest_points[index_to_max_element(nearest_points)].second;
     }
-    vector<Cluster_point> points = load_leaf("../../data/ecp_clusters.bin", cluster_meta_data, cluster_id);
+    vector<Cluster_point> points = load_leaf("data/ecp_clusters.bin", cluster_meta_data, cluster_id);
     for (Cluster_point &point : points)
     {
         if (nearest_points.size() < k)
@@ -161,18 +161,19 @@ vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, int8_t
     sort(k_nearest_points.begin(), k_nearest_points.end(), smallest_distance);
     return k_nearest_points;
 }
-
-pair<vector<unsigned int>, vector<float>> query(vector<Node> &index, int8_t *query, unsigned int k, int b, int L)
+//pair<vector<unsigned int>, vector<float>>
+vector<unsigned int> query(vector<Node> &index, int8_t *query, unsigned int k, int b, int L)
 {
     auto nearest_points = k_nearest_neighbors(index, query, k, b, L);
-    vector<unsigned int> nearest_indexes = {};
+    vector<unsigned int> nearest_indexes;
     vector<float> nearest_dist = {};
     for (auto it = make_move_iterator(nearest_points.begin()), end = make_move_iterator(nearest_points.end()); it != end; ++it)
     {
         nearest_indexes.push_back(it->first);
         nearest_dist.push_back(it->second);
     }
-    return make_pair(nearest_indexes, nearest_dist);
+    //make_pair(nearest_indexes, nearest_dist);
+    return nearest_indexes;
 }
 
 vector<Point> load_queries(string query_file_path)
@@ -208,8 +209,8 @@ vector<Cluster_meta> load_meta_data(string meta_data_file_path)
     }
     return cluster_meta_data;
 }
-
-std::pair<std::vector<unsigned int>, std::vector<float>> process_query(string query_file_path, string index_file_path, string meta_data_file_path, int k, int b, int L)
+//vector<vector<int>> queries
+std::vector<std::vector<unsigned int>> process_query(std::string query_file_path, string index_file_path, string meta_data_file_path, int k, int b, int L)
 {
     // Load index from binary file
     vector<Node> index = load_index(index_file_path);
@@ -220,7 +221,13 @@ std::pair<std::vector<unsigned int>, std::vector<float>> process_query(string qu
     // Load queries from binary file
     vector<Point> queries = load_queries(query_file_path);
 
-    auto result = query(index, queries[0].descriptors, k, b, L);
+    vector<vector<unsigned int>> results;
 
-    return result;
+    for (auto q : queries)
+    {
+        vector<unsigned int> result = query(index, q.descriptors, k, b, L);
+        results.push_back(result);
+    }
+
+    return results;
 }

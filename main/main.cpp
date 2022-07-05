@@ -51,7 +51,7 @@ int main()
 
     string index_file_path = ecp::ecp_create_index(dataset_file_path, L, desired_cluster_size);
     string meta_data_file_path = ecp::ecp_assign_points_to_cluster(dataset_file_path, index_file_path, chunk_size);
-    auto results = ecp::ecp_process_query(query_file_path, index_file_path, meta_data_file_path, k, b, L);
+    //auto results = ecp::ecp_process_query(query_file_path, index_file_path, meta_data_file_path, k, b, L);
 
     load_ground_truth();
 

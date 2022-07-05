@@ -24,6 +24,7 @@
 
 namespace std {
   %template(UIntVector) std::vector<unsigned int>;
+  %template(UIntVectorVector) std::vector<std::vector<unsigned int>>;
   %template(FloatVector) std::vector<float>;
   %template(FloatFloatVector) std::vector<std::vector<float>>;
   %template(PairVector) std::pair<std::vector<unsigned int>, std::vector<float>>;
