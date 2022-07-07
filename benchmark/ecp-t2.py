@@ -1,9 +1,8 @@
 from __future__ import absolute_import
-from operator import index
-import benchmark.algorithms.ecp_wrapper as ecp
-
 from benchmark.algorithms.base import BaseANN
 from benchmark.datasets import DATASETS
+import benchmark.algorithms.ecp_wrapper as ecp
+import numpy as np
 
 class Ecp(BaseANN):
     def __init__(self, metric, index_params):
@@ -26,9 +25,8 @@ class Ecp(BaseANN):
     def fit(self, dataset):
         ds = DATASETS[dataset]()
         dataset_file_path = ds.get_dataset_fn()
-        self.querie_file_path = ds.qs_fn
         self.index_file_path = ecp.ecp_create_index(dataset_file_path, self.L, self.DCS)
-        self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_file_path, 5000000)
+        self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_file_path, 500000)
 
     def load_index(self, dataset):
         return False
@@ -37,7 +35,8 @@ class Ecp(BaseANN):
         return False
     
     def query(self, X, k):
-        result = ecp.ecp_process_query("data/MSSPACEV1B/query.i8bin", self.index_file_path, self.meta_data_file_path, self.k, self.b, self.L)
+        queries = X.astype(np.float64)
+        result = ecp.ecp_process_query(queries, self.index_file_path, self.meta_data_file_path, self.k, self.b, self.L)
         self.res = result
 
     def get_results(self):
