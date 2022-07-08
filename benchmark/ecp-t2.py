@@ -1,8 +1,9 @@
 from __future__ import absolute_import
-from benchmark.algorithms.base import BaseANN
-from benchmark.datasets import DATASETS
 import benchmark.algorithms.ecp_wrapper as ecp
 import numpy as np
+import os
+from benchmark.algorithms.base import BaseANN
+from benchmark.datasets import DATASETS
 
 class Ecp(BaseANN):
     def __init__(self, metric, index_params):
@@ -22,11 +23,28 @@ class Ecp(BaseANN):
     def track(self):
         return "T2"
 
+    def create_index_dir(self, dataset):
+        self.index_name = f"L{self.L}_DCS{self.DCS}"
+        index_dir = os.path.join(os.getcwd(), "data", "indices")
+        os.makedirs(index_dir, mode=0o777, exist_ok=True)
+        index_dir = os.path.join(index_dir, "T2")
+        os.makedirs(index_dir, mode=0o777, exist_ok=True)
+        index_dir = os.path.join(index_dir, self.__str__())
+        os.makedirs(index_dir, mode=0o777, exist_ok=True)
+        index_dir = os.path.join(index_dir, dataset.short_name())
+        os.makedirs(index_dir, mode=0o777, exist_ok=True)
+        index_dir = os.path.join(index_dir, self.index_name)
+        os.makedirs(index_dir, mode=0o777, exist_ok=True)
+        return index_dir
+
     def fit(self, dataset):
         ds = DATASETS[dataset]()
+        index_dir = self.create_index_dir(ds) + "/"
+        # Change path to save files in ecp library
         dataset_file_path = ds.get_dataset_fn()
-        self.index_file_path = ecp.ecp_create_index(dataset_file_path, self.L, self.DCS)
-        self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_file_path, 500000)
+        print(index_dir)
+        self.index_file_path = ecp.ecp_create_index(dataset_file_path, index_dir, self.L, self.DCS)
+        self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_file_path, index_dir, 500000)
 
     def load_index(self, dataset):
         return False
