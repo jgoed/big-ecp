@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import benchmark.algorithms.ecp_wrapper as ecp
+import ecp_wrapper as ecp
 import numpy as np
 import os
 from benchmark.algorithms.base import BaseANN
@@ -42,7 +42,6 @@ class Ecp(BaseANN):
         index_dir = self.create_index_dir(ds) + "/"
         # Change path to save files in ecp library
         dataset_file_path = ds.get_dataset_fn()
-        print(index_dir)
         self.index_file_path = ecp.ecp_create_index(dataset_file_path, index_dir, self.L, self.DCS)
         self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_file_path, index_dir, 500000)
 
