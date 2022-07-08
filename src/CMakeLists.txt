@@ -3,6 +3,8 @@ project(ecp_lib
     VERSION 1.0
 )
 
+set(CMAKE_CXX_STANDARD 17)
+
 add_library(${PROJECT_NAME}
     SHARED
         assignment.cpp
