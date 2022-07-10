@@ -3,7 +3,6 @@
 #include "index.hpp"
 
 #include <algorithm>
-#include <experimental/filesystem>
 #include <fstream>
 #include <iostream>
 #include <math.h>
@@ -180,12 +179,6 @@ string assign_points_to_cluster(string dataset_file_path, string index_file_path
     }
 
     cluster_file.close();
-
-    // Delete all chunk files
-    for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
-    {
-        filesystem::remove(ecp_dir_path + "ecp_chunk_" + to_string(cur_chunk) + ".bin");
-    }
 
     // Write cluster meta data to binary file
     uint32_t num_leafs = leafs.size();
