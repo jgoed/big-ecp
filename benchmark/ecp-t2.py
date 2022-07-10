@@ -13,12 +13,17 @@ class Ecp(BaseANN):
             return
         if (index_params.get("DCS") == None):
             print("Error: Missing Parameter DCS")
+            return
+        if (index_params.get("CS") == None):
+            print("Error: Missing Parameter CS ")
+            return
 
         self._index_params = index_params
         self._metric = metric
 
         self.L = index_params.get("L")
         self.DCS = index_params.get("DCS")
+        self.CS = index_params.get("CS")
 
     def track(self):
         return "T2"
@@ -43,7 +48,7 @@ class Ecp(BaseANN):
         # Change path to save files in ecp library
         dataset_file_path = ds.get_dataset_fn()
         self.index_file_path = ecp.ecp_create_index(dataset_file_path, index_dir, self.L, self.DCS)
-        self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_file_path, index_dir, 500000)
+        self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_file_path, index_dir, self.CS)
 
     def load_index(self, dataset):
         return False
@@ -68,4 +73,3 @@ class Ecp(BaseANN):
         self._query_args = query_args
         self.k = query_args.get("k")
         self.b = query_args.get("b")
-        self.L = query_args.get("L")

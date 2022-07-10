@@ -19,7 +19,7 @@ void load_ground_truth()
 
     vector<vector<uint32_t>> knns;
 
-    for (int i = 0; i < num_queries; i++)
+    for (int i = 0; i < (int)num_queries; i++)
     {
         vector<uint32_t> ids(num_knn);
         ground_truth_file.read(reinterpret_cast<char *>(ids.data()), sizeof(uint32_t) * num_knn);
@@ -28,7 +28,7 @@ void load_ground_truth()
 
     vector<vector<float>> dists;
 
-    for (int i = 0; i < num_queries; i++)
+    for (int i = 0; i < (int)num_queries; i++)
     {
         vector<float> dis(num_knn);
         ground_truth_file.read(reinterpret_cast<char *>(dis.data()), sizeof(float) * num_knn);
@@ -43,11 +43,11 @@ int main()
     string dataset_file_path = data_folder_path + "spacev1b_base_1M.i8bin";
     int L = 3;                         // Number of index levels
     int desired_cluster_size = 512000; // 512000 byte is default block size for SSDs
-    uint32_t chunk_size = 200000;
+    uint32_t chunk_size = 5000000;
 
     string query_file_path = data_folder_path + "query.i8bin";
-    int k = 10;
-    int b = 1;
+    // int k = 10;
+    // int b = 1;
 
     string index_file_path = ecp::ecp_create_index(dataset_file_path, data_folder_path, L, desired_cluster_size);
     string meta_data_file_path = ecp::ecp_assign_points_to_cluster(dataset_file_path, index_file_path, data_folder_path, chunk_size);

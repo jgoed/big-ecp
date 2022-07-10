@@ -16,7 +16,7 @@ Node load_node(fstream &index_file, uint32_t &read_nodes)
     index_file.read(reinterpret_cast<char *>(&node.leader.id), sizeof(uint32_t));
     index_file.read(reinterpret_cast<char *>(node.leader.descriptors), global_point_size);
     index_file.read(reinterpret_cast<char *>(&num_children), sizeof(uint32_t));
-    for (int i = 0; i < num_children; i++)
+    for (int i = 0; i < (int)num_children; i++)
     {
         node.children.push_back(load_node(index_file, read_nodes));
     }
@@ -27,7 +27,7 @@ vector<Node> load_index(string index_file_path)
 {
     fstream index_file;
     index_file.open(index_file_path, ios::in | ios::binary);
-    uint32_t num_nodes_to_read;
+    uint32_t num_nodes_to_read = 0;
     index_file.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
     vector<Node> index;
     uint32_t read_nodes = 0;
@@ -47,7 +47,7 @@ void save_node(fstream &index_file, Node node, uint32_t &num_nodes_in_index)
     index_file.write(reinterpret_cast<char *>(node.leader.descriptors), global_point_size);
     uint32_t cur_num_children = node.children.size();
     index_file.write(reinterpret_cast<char *>(&cur_num_children), sizeof(uint32_t));
-    for (int i = 0; i < node.children.size(); i++)
+    for (int i = 0; i < (int)node.children.size(); i++)
     {
         save_node(index_file, node.children[i], num_nodes_in_index);
     }
@@ -84,7 +84,7 @@ Node create_node(fstream &dataset_file, uint32_t position, uint32_t &unique_node
     return node;
 }
 
-vector<uint32_t> create_random_unique_numbers(uint32_t amount, uint32_t max_number)
+vector<uint32_t> create_random_unique_numbers(int amount, uint32_t max_number)
 {
     vector<uint32_t> collected_samples;
     collected_samples.reserve(amount);
@@ -124,7 +124,7 @@ string create_index(string dataset_file_path, string ecp_dir_path, int L, int de
 
     // Calculate the overall number of leaders
     //int desired_cluster_size = 512000;                                                                         // 512000 byte is default block size for SSDs
-    uint32_t num_leaders = ceil(num_points / (desired_cluster_size / (global_point_size + sizeof(uint32_t)))); // N/ts
+    int num_leaders = ceil(num_points / (desired_cluster_size / (global_point_size + sizeof(uint32_t)))); // N/ts
 
     // Generate random leaders
     // NOTE: Currently not used due to make debugging easier, otherwise use this below: random_leader_ids.at(i)

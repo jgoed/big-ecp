@@ -10,7 +10,7 @@ namespace ecp
         return create_index(dataset_file_path, ecp_dir_path, L, desired_cluster_size);
     }
 
-    std::string ecp_assign_points_to_cluster(std::string dataset_file_path, std::string index_file_path, std::string meta_data_file_path, int chunk_size)
+    std::string ecp_assign_points_to_cluster(std::string dataset_file_path, std::string index_file_path, std::string meta_data_file_path, unsigned int chunk_size)
     {
         return assign_points_to_cluster(dataset_file_path, index_file_path, meta_data_file_path, chunk_size);
     }

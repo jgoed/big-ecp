@@ -3,7 +3,7 @@
 #include "index.hpp"
 
 #include <algorithm>
-//#include <filesystem>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <math.h>
@@ -79,7 +79,7 @@ Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
     return closest_cluster;
 }
 
-string assign_points_to_cluster(string dataset_file_path, string index_file_path, std::string ecp_dir_path, int chunk_size)
+string assign_points_to_cluster(string dataset_file_path, string index_file_path, std::string ecp_dir_path, unsigned int chunk_size)
 {
     // Read index from binary file
     vector<Node> index = load_index(index_file_path);
@@ -93,7 +93,11 @@ string assign_points_to_cluster(string dataset_file_path, string index_file_path
     dataset_file.read((char *)&num_points, sizeof(uint32_t));
 
     // Calculate total number of chunks needed
-    uint32_t num_chunks = num_points / chunk_size;
+    if (chunk_size > num_points)
+    {
+        chunk_size = num_points;
+    }
+    int num_chunks = num_points / chunk_size;
 
     // Allocate memory buffer
     Binary_point *chunk{new Binary_point[chunk_size]{}};       // Buffer for data points
@@ -109,7 +113,7 @@ string assign_points_to_cluster(string dataset_file_path, string index_file_path
         dataset_file.read(reinterpret_cast<char *>(chunk), chunk_size * sizeof(Binary_point));
 
         // Asign all points from chunk to a cluster leaf
-        for (int i = 0; i < chunk_size; i++)
+        for (unsigned int i = 0; i < chunk_size; i++)
         {
             Node *cluster = find_nearest_leaf(chunk[i].descriptors, index);
             point_meta_data[i].buffer_position = i;
@@ -123,7 +127,7 @@ string assign_points_to_cluster(string dataset_file_path, string index_file_path
         // Write assignments to binary chunk
         fstream chunk_file;
         chunk_file.open(ecp_dir_path + "ecp_chunk_" + to_string(cur_chunk) + ".bin", ios::out | ios::binary);
-        for (int i = 0; i < chunk_size; i++)
+        for (unsigned int i = 0; i < chunk_size; i++)
         {
             chunk_file.write(reinterpret_cast<char *>(&point_meta_data[i].cluster_id), sizeof(uint32_t));
             chunk_file.write(reinterpret_cast<char *>(&point_meta_data[i].point_id), sizeof(uint32_t));
@@ -160,7 +164,7 @@ string assign_points_to_cluster(string dataset_file_path, string index_file_path
             Cluster_point cur_cluster_point;
 
             // Search every point in chunk file
-            for (int i = 0; i < chunk_size; i++)
+            for (unsigned int i = 0; i < chunk_size; i++)
             {
                 chunk_file.read((char *)&cur_cluster_point, sizeof(Cluster_point));
                 if (cur_cluster_point.cluster_id == leaf) // If point is assigned to current leaf
@@ -177,13 +181,19 @@ string assign_points_to_cluster(string dataset_file_path, string index_file_path
 
     cluster_file.close();
 
+    // Delete all chunk files
+    for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
+    {
+        filesystem::remove(ecp_dir_path + "ecp_chunk_" + to_string(cur_chunk) + ".bin");
+    }
+
     // Write cluster meta data to binary file
     uint32_t num_leafs = leafs.size();
     fstream cluster_meta_file;
     string meta_data_file_path = ecp_dir_path + "ecp_cluster_meta.bin";
     cluster_meta_file.open(meta_data_file_path, ios::out | ios::binary);
     cluster_meta_file.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
-    for (int i = 0; i < num_leafs; i++)
+    for (unsigned int i = 0; i < num_leafs; i++)
     {
         uint32_t cur_id = ecp_cluster_meta_data.at(i).cluster_id;
         uint32_t cur_num_points_in_leaf = ecp_cluster_meta_data.at(i).num_points_in_leaf;
@@ -193,12 +203,6 @@ string assign_points_to_cluster(string dataset_file_path, string index_file_path
         cluster_meta_file.write(reinterpret_cast<char *>(&cur_offset), sizeof(uint32_t));
     }
     cluster_meta_file.close();
-
-    // Delete all chunk files
-    // for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
-    // {
-    //     filesystem::remove(ecp_dir_path + "ecp_chunk_" + to_string(cur_chunk) + ".bin");
-    // }
 
     return meta_data_file_path;
 }
