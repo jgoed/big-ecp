@@ -53,7 +53,7 @@ vector<Cluster_point> load_leaf(string cluster_file_path, vector<Cluster_meta> c
     return points_in_leaf;
 }
 
-void scan_leaf_node(int8_t *&query, uint32_t &cluster_id, const unsigned int k, vector<pair<unsigned int, float>> &nearest_points)
+void scan_leaf_node(int8_t *query, uint32_t &cluster_id, const unsigned int k, vector<pair<unsigned int, float>> &nearest_points)
 {
     float max_distance = std::numeric_limits<float>::max();
 
@@ -61,7 +61,7 @@ void scan_leaf_node(int8_t *&query, uint32_t &cluster_id, const unsigned int k, 
     {
         max_distance = nearest_points[index_to_max_element(nearest_points)].second;
     }
-    vector<Cluster_point> points = load_leaf("data/ecp_clusters.bin", cluster_meta_data, cluster_id);
+    vector<Cluster_point> points = load_leaf("../../data/ecp_clusters.bin", cluster_meta_data, cluster_id);
     for (Cluster_point &point : points)
     {
         if (nearest_points.size() < k)
@@ -102,7 +102,7 @@ pair<int, float> find_furthest_node(int8_t *&query, vector<Node *> &nodes)
     return worst;
 }
 
-void scan_node(int8_t *&query, vector<Node> &nodes, unsigned int &b, vector<Node *> &nodes_accumulated)
+void scan_node(int8_t *query, vector<Node> &nodes, unsigned int &b, vector<Node *> &nodes_accumulated)
 {
     pair<int, float> furthest_node = make_pair(-1, -1.0);
     if (nodes_accumulated.size() >= b)
@@ -121,6 +121,7 @@ void scan_node(int8_t *&query, vector<Node> &nodes, unsigned int &b, vector<Node
         }
         else
         {
+            float res = euclidean_distance(query, node.leader.descriptors);
             if (euclidean_distance(query, node.leader.descriptors) < furthest_node.second)
             {
                 nodes_accumulated[furthest_node.first] = &node;
@@ -130,7 +131,7 @@ void scan_node(int8_t *&query, vector<Node> &nodes, unsigned int &b, vector<Node
     }
 }
 
-vector<Node *> find_b_nearest_clusters(vector<Node> &root, int8_t *&query, unsigned int b, unsigned int L)
+vector<Node *> find_b_nearest_clusters(vector<Node> &root, int8_t *query, unsigned int b, unsigned int L)
 {
     vector<Node *> b_best;
     b_best.reserve(b);
@@ -149,7 +150,7 @@ vector<Node *> find_b_nearest_clusters(vector<Node> &root, int8_t *&query, unsig
     return b_best;
 }
 
-vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, int8_t *&query, const unsigned int k, const unsigned int b, unsigned int L)
+vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, int8_t *query, const unsigned int k, const unsigned int b, unsigned int L)
 {
     vector<Node *> b_nearest_clusters{find_b_nearest_clusters(root, query, b, L)};
     vector<pair<unsigned int, float>> k_nearest_points;
@@ -161,6 +162,7 @@ vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, int8_t
     sort(k_nearest_points.begin(), k_nearest_points.end(), smallest_distance);
     return k_nearest_points;
 }
+
 // pair<vector<unsigned int>, vector<float>>
 vector<unsigned int> query(vector<Node> &index, int8_t *query, unsigned int k, int b, int L)
 {
@@ -219,11 +221,11 @@ std::vector<std::vector<unsigned int>> process_query(std::vector<std::vector<flo
     cluster_meta_data = load_meta_data(meta_data_file_path);
 
     // Load queries from binary file
-    // vector<Point> queries = load_queries(query_file_path);
+    // vector<Point> p_queries = load_queries("../../data/query.i8bin");
 
     vector<vector<unsigned int>> results;
 
-    for (auto q : queries)
+    for (auto &q : queries)
     {
         vector<unsigned int> result = query(index, (int8_t *)q.data(), k, b, L);
         results.push_back(result);
