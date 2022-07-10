@@ -88,15 +88,11 @@ string assign_points_to_cluster(string dataset_file_path, string index_file_path
     dataset_file.open(dataset_file_path, ios::in | ios::binary);
 
     // Read total number of points from binary file
-    uint32_t num_points = 0;
+    uint32_t num_points;
     dataset_file.read((char *)&num_points, sizeof(uint32_t));
 
     // Calculate total number of chunks needed
-    if (chunk_size > num_points)
-    {
-        chunk_size = num_points;
-    }
-    int num_chunks = num_points / chunk_size;
+    uint32_t num_chunks = num_points / chunk_size;
 
     // Allocate memory buffer
     Binary_point *chunk{new Binary_point[chunk_size]{}};       // Buffer for data points
