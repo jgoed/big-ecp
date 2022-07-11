@@ -39,22 +39,22 @@ void load_ground_truth()
 
 int main()
 {
-    string data_folder_path = "../../data/";
-    string dataset_file_path = data_folder_path + "spacev1b_base_1M.i8bin";
-    int L = 3;                         // Number of index levels
-    int desired_cluster_size = 512000; // 512000 byte is default block size for SSDs
-    uint32_t chunk_size = 1000000;
+    // string data_folder_path = "../../data/";
+    // string dataset_file_path = data_folder_path + "spacev1b_base_1M.i8bin";
+    // int L = 3;                         // Number of index levels
+    // int desired_cluster_size = 512000; // 512000 byte is default block size for SSDs
+    // uint32_t chunk_size = 1000000;
 
-    string query_file_path = data_folder_path + "query.i8bin";
-    int k = 10;
-    int b = 1;
-    vector<vector<float>> dummy;
+    // string query_file_path = data_folder_path + "query.i8bin";
+    // int k = 10;
+    // int b = 1;
+    // vector<vector<float>> dummy;
 
-    string index_file_path = ecp::ecp_create_index(dataset_file_path, data_folder_path, L, desired_cluster_size);
-    string meta_data_file_path = ecp::ecp_assign_points_to_cluster(dataset_file_path, index_file_path, data_folder_path, chunk_size);
-    auto results = ecp::ecp_process_query(dummy, index_file_path, meta_data_file_path, data_folder_path + "ecp_clusters.bin", k, b, L);
+    // string index_file_path = ecp::ecp_create_index(dataset_file_path, data_folder_path, L, desired_cluster_size);
+    // string meta_data_file_path = ecp::ecp_assign_points_to_cluster(dataset_file_path, index_file_path, data_folder_path, chunk_size);
+    // auto results = ecp::ecp_process_query(dummy, index_file_path, meta_data_file_path, data_folder_path + "ecp_clusters.bin", k, b, L);
 
-    load_ground_truth();
+    // load_ground_truth();
 
-    return 0;
+    // return 0;
 }

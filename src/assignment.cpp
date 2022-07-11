@@ -78,10 +78,10 @@ Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
     return closest_cluster;
 }
 
-string assign_points_to_cluster(string dataset_file_path, string index_file_path, std::string ecp_dir_path, unsigned int chunk_size)
+int assign_points_to_cluster(string dataset_file_path, std::string ecp_dir_path, unsigned int chunk_size)
 {
     // Read index from binary file
-    vector<Node> index = load_index(index_file_path);
+    vector<Node> index = load_index(ecp_dir_path + "ecp_index.bin");
 
     // Open given input dataset binary file
     fstream dataset_file;
@@ -193,5 +193,5 @@ string assign_points_to_cluster(string dataset_file_path, string index_file_path
     }
     cluster_meta_file.close();
 
-    return meta_data_file_path;
+    return 0;
 }

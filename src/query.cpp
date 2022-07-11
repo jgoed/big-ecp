@@ -123,7 +123,6 @@ void scan_node(int8_t *query, vector<Node> &nodes, unsigned int &b, vector<Node 
         }
         else
         {
-            float res = euclidean_distance(query, node.leader.descriptors);
             if (euclidean_distance(query, node.leader.descriptors) < furthest_node.second)
             {
                 nodes_accumulated[furthest_node.first] = &node;
@@ -214,15 +213,15 @@ vector<Cluster_meta> load_meta_data(string meta_data_file_path)
     return cluster_meta_data;
 }
 // vector<vector<int>> queries
-std::vector<std::vector<unsigned int>> process_query(std::vector<std::vector<float>> queries, string index_file_path, string meta_data_file_path, string ecp_dir_path, int k, int b, int L)
+std::vector<std::vector<unsigned int>> process_query(std::vector<std::vector<float>> queries, string ecp_dir_path, int k, int b, int L)
 {
     // Load index from binary file
-    vector<Node> index = load_index(index_file_path);
+    vector<Node> index = load_index(ecp_dir_path + "ecp_index.bin");
 
     // Load index meta data from binary file
-    cluster_meta_data = load_meta_data(meta_data_file_path);
+    cluster_meta_data = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin");
 
-    cluster_file_path = ecp_dir_path;
+    cluster_file_path = ecp_dir_path + "ecp_clusters.bin";
 
     // Load queries from binary file
     vector<Point> p_queries = load_queries("../../data/query.i8bin");

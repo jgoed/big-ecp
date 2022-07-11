@@ -110,7 +110,7 @@ vector<uint32_t> create_random_unique_numbers(int amount, uint32_t max_number)
     return collected_samples;
 }
 
-string create_index(string dataset_file_path, string ecp_dir_path, int L, int desired_cluster_size)
+int create_index(string dataset_file_path, string ecp_dir_path, int L, int desired_cluster_size)
 {
     // Open given input dataset binary file
     fstream dataset_file;
@@ -123,7 +123,6 @@ string create_index(string dataset_file_path, string ecp_dir_path, int L, int de
     global_point_size = sizeof(uint8_t) * global_num_dimensions;
 
     // Calculate the overall number of leaders
-    //int desired_cluster_size = 512000;                                                                         // 512000 byte is default block size for SSDs
     int num_leaders = ceil(num_points / (desired_cluster_size / (global_point_size + sizeof(uint32_t)))); // N/ts
 
     // Generate random leaders
@@ -171,5 +170,5 @@ string create_index(string dataset_file_path, string ecp_dir_path, int L, int de
     index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t));
     index_file.close();
 
-    return index_file_path;
+    return 0;
 }
