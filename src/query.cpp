@@ -8,6 +8,8 @@ using namespace std;
 
 vector<Cluster_meta> cluster_meta_data;
 
+string cluster_file_path;
+
 bool smallest_distance(pair<unsigned int, float> &a, pair<unsigned int, float> &b)
 {
     return a.second < b.second;
@@ -61,7 +63,7 @@ void scan_leaf_node(int8_t *query, uint32_t &cluster_id, const unsigned int k, v
     {
         max_distance = nearest_points[index_to_max_element(nearest_points)].second;
     }
-    vector<Cluster_point> points = load_leaf("../../data/ecp_clusters.bin", cluster_meta_data, cluster_id);
+    vector<Cluster_point> points = load_leaf(cluster_file_path, cluster_meta_data, cluster_id);
     for (Cluster_point &point : points)
     {
         if (nearest_points.size() < k)
@@ -212,7 +214,7 @@ vector<Cluster_meta> load_meta_data(string meta_data_file_path)
     return cluster_meta_data;
 }
 // vector<vector<int>> queries
-std::vector<std::vector<unsigned int>> process_query(std::vector<std::vector<float>> queries, string index_file_path, string meta_data_file_path, int k, int b, int L)
+std::vector<std::vector<unsigned int>> process_query(std::vector<std::vector<float>> queries, string index_file_path, string meta_data_file_path, string ecp_dir_path, int k, int b, int L)
 {
     // Load index from binary file
     vector<Node> index = load_index(index_file_path);
@@ -220,14 +222,26 @@ std::vector<std::vector<unsigned int>> process_query(std::vector<std::vector<flo
     // Load index meta data from binary file
     cluster_meta_data = load_meta_data(meta_data_file_path);
 
+    cluster_file_path = ecp_dir_path;
+
     // Load queries from binary file
-    // vector<Point> p_queries = load_queries("../../data/query.i8bin");
+    vector<Point> p_queries = load_queries("../../data/query.i8bin");
 
     vector<vector<unsigned int>> results;
 
-    for (auto &q : queries)
+    for (auto q : queries)
     {
-        vector<unsigned int> result = query(index, (int8_t *)q.data(), k, b, L);
+        vector<int8_t> cur_query_point;
+        cur_query_point.reserve(q.size());
+        for (const auto &f : q)
+        {
+            cur_query_point.push_back(static_cast<int8_t>(f));
+        }
+
+        vector<unsigned int> result = query(index, cur_query_point.data(), k, b, L);
+        // YOU NEED TO CONVERT !!!
+        // vector<int8_t> desc(q.descriptors, q.descriptors + 100);
+        // vector<unsigned int> result = query(index, desc.data(), k, b, L);
         results.push_back(result);
     }
 

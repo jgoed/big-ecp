@@ -15,9 +15,9 @@ namespace ecp
         return assign_points_to_cluster(dataset_file_path, index_file_path, meta_data_file_path, chunk_size);
     }
 
-    std::vector<std::vector<unsigned int>> ecp_process_query(std::vector<std::vector<float>> queries, std::string index_file_path, std::string meta_data_file_path, int k, int b, int L)
+    std::vector<std::vector<unsigned int>> ecp_process_query(std::vector<std::vector<float>> queries, std::string index_file_path, std::string meta_data_file_path, std::string ecp_dir_path, int k, int b, int L)
     {
-        return process_query(queries, index_file_path, meta_data_file_path, k, b, L);
+        return process_query(queries, index_file_path, meta_data_file_path, ecp_dir_path, k, b, L);
     }
 
 }

@@ -7,7 +7,7 @@ any:
       run-groups:
         base:
           args: |
-              [{"L":6, "DCS":512000, "CS":250000000}]
+              [{"L":3, "DCS":512000, "CS":1000000}]
           query-args: |
               [{"k":10, "b":1}]
     faiss-ivf:
