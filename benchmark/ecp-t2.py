@@ -14,8 +14,8 @@ class Ecp(BaseANN):
         if (index_params.get("DCS") == None):
             print("Error: Missing Parameter DCS")
             return
-        if (index_params.get("CS") == None):
-            print("Error: Missing Parameter CS ")
+        if (index_params.get("NC") == None):
+            print("Error: Missing Parameter NC")
             return
 
         self._index_params = index_params
@@ -23,13 +23,13 @@ class Ecp(BaseANN):
 
         self.L = index_params.get("L")
         self.DCS = index_params.get("DCS")
-        self.CS = index_params.get("CS")
+        self.NC = index_params.get("NC")
 
     def track(self):
         return "T2"
 
     def create_index_dir(self, dataset):
-        self.index_name = f"L{self.L}_DCS{self.DCS}_CS{self.CS}"
+        self.index_name = f"L{self.L}_DCS{self.DCS}_NC{self.CS}"
         index_dir = os.path.join(os.getcwd(), "data", "indices")
         os.makedirs(index_dir, mode=0o777, exist_ok=True)
         index_dir = os.path.join(index_dir, "T2")
@@ -47,7 +47,7 @@ class Ecp(BaseANN):
         self.index_dir = self.create_index_dir(ds) + "/"
         dataset_file_path = ds.get_dataset_fn()
         self.index_file_path = ecp.ecp_create_index(dataset_file_path, self.index_dir, self.L, self.DCS)
-        self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_dir, self.CS)
+        self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_dir, self.NC)
 
     def load_index(self, dataset):
         return False
