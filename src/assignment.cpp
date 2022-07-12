@@ -13,16 +13,18 @@
 
 using namespace std;
 
-Cluster_meta search_leaf_meta_data(std::vector<Cluster_meta> chunk_meta, uint32_t leaf)
+int search_leaf_meta_data(std::vector<Cluster_meta> chunk_meta, uint32_t leaf, Cluster_meta &cur_leaf_meta)
 {
     for (Cluster_meta i : chunk_meta)
     {
         if (i.cluster_id == leaf)
         {
-            return i;
+            cur_leaf_meta = i;
+            return 0;
         }
     }
     cout << "ID NOT FOUND" << endl;
+    return 1;
 }
 
 vector<uint32_t> find_all_leafs(vector<Node> &root)
@@ -196,10 +198,9 @@ int assign_points_to_cluster(string dataset_file_path, std::string ecp_dir_path,
         {
 
             Cluster_meta cur_leaf_meta;
-            cur_leaf_meta.num_points_in_leaf = 0;
-            cur_leaf_meta = search_leaf_meta_data(all_chunk_meta[cur_chunk], leaf);
+            int res = search_leaf_meta_data(all_chunk_meta[cur_chunk], leaf, cur_leaf_meta);
 
-            if (cur_leaf_meta.num_points_in_leaf != 0) // If leaf has no assignments in that chunk skip it
+            if (res == 0) // If leaf has no assignments in that chunk skip it
             {
                 Cluster_point *merge_buffer{new Cluster_point[cur_leaf_meta.num_points_in_leaf]{}};
                 memset(merge_buffer, 0, cur_leaf_meta.num_points_in_leaf * sizeof(Cluster_point));
@@ -213,6 +214,8 @@ int assign_points_to_cluster(string dataset_file_path, std::string ecp_dir_path,
 
                 chunk_file.close();
                 delete[] merge_buffer;
+            } else {
+                cout << "BUT SKIPPED" << endl;
             }
         }
         cur_cluster_meta.num_points_in_leaf = cur_num_points;
