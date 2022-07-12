@@ -29,7 +29,7 @@ class Ecp(BaseANN):
         return "T2"
 
     def create_index_dir(self, dataset):
-        self.index_name = f"L{self.L}_DCS{self.DCS}_NC{self.CS}"
+        self.index_name = f"L{self.L}_DCS{self.DCS}_NC{self.NC}"
         index_dir = os.path.join(os.getcwd(), "data", "indices")
         os.makedirs(index_dir, mode=0o777, exist_ok=True)
         index_dir = os.path.join(index_dir, "T2")
