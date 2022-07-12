@@ -9,40 +9,40 @@ extern uint32_t global_point_size;
 
 struct Point
 {
-    unsigned int id;
+    uint32_t id;
     int8_t descriptors[100];
 };
 
 struct Node
 {
-    unsigned int id;
+    uint32_t id;
     Point leader;
     std::vector<Node> children;
 };
 
-struct Binary_point
+struct BinaryPoint
 {
     int8_t descriptors[100];
 };
 
-struct Point_meta
+struct PointMeta
 {
-    unsigned int buffer_position;
-    unsigned int point_id;
-    unsigned int cluster_id;
+    uint32_t buffer_position;
+    uint32_t point_id;
+    uint32_t cluster_id;
 };
 
-struct Cluster_meta
+struct ClusterMeta
 {
-    unsigned int cluster_id;
-    unsigned int num_points_in_leaf;
-    unsigned int offset;
+    uint32_t cluster_id;
+    uint32_t num_points_in_leaf;
+    uint32_t offset;
 };
 
-struct Cluster_point
+struct ClusterPoint
 {
-    unsigned int cluster_id;
-    unsigned int point_id;
+    uint32_t cluster_id;
+    uint32_t point_id;
     int8_t descriptor[100];
 };
 

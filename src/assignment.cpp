@@ -13,20 +13,25 @@
 
 using namespace std;
 
-int search_leaf_meta_data(std::vector<Cluster_meta> chunk_meta, uint32_t leaf, Cluster_meta &cur_leaf_meta)
+/**
+ * Search if there is assignment data for given leaf in given chunk meta data
+ */
+bool search_leaf_meta_data(vector<ClusterMeta> chunk_meta, uint32_t leaf, ClusterMeta &cur_leaf_meta)
 {
-    for (Cluster_meta i : chunk_meta)
+    for (ClusterMeta i : chunk_meta)
     {
         if (i.cluster_id == leaf)
         {
             cur_leaf_meta = i;
-            return 0;
+            return true;
         }
     }
-    cout << "ID NOT FOUND" << endl;
-    return 1;
+    return false;
 }
 
+/**
+ * Find all leafs in a given index
+ */
 vector<uint32_t> find_all_leafs(vector<Node> &root)
 {
     vector<uint32_t> leaf_ids;
@@ -56,7 +61,10 @@ vector<uint32_t> find_all_leafs(vector<Node> &root)
     return leaf_ids;
 }
 
-bool compare_cluster_id(Point_meta p1, Point_meta p2)
+/**
+ * Compare two cluster ids
+ */
+bool compare_cluster_id(PointMeta p1, PointMeta p2)
 {
     if (p1.cluster_id < p2.cluster_id)
     {
@@ -65,7 +73,10 @@ bool compare_cluster_id(Point_meta p1, Point_meta p2)
     return false;
 }
 
-Node *get_closest_node(std::vector<Node> &nodes, int8_t *query)
+/**
+ * Get closest node from given vector of nodes
+ */
+Node *get_closest_node(vector<Node> &nodes, int8_t *query)
 {
     float max = numeric_limits<float>::max();
     Node *closest = nullptr;
@@ -82,7 +93,10 @@ Node *get_closest_node(std::vector<Node> &nodes, int8_t *query)
     return closest;
 }
 
-Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
+/**
+ * Find nearest leaf for given query point
+ */
+Node *find_nearest_leaf(int8_t *query, vector<Node> &nodes)
 {
     Node *closest_cluster = get_closest_node(nodes, query);
     if (!closest_cluster->children.empty())
@@ -92,39 +106,39 @@ Node *find_nearest_leaf(int8_t *query, std::vector<Node> &nodes)
     return closest_cluster;
 }
 
-int assign_points_to_cluster(string dataset_file_path, std::string ecp_dir_path, unsigned int chunk_size)
+/**
+ * Assign all points of given input dataset to leafs of given index and write it down in binary file
+ */
+int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int num_chunks)
 {
-    // Read index from binary file
-    vector<Node> index = load_index(ecp_dir_path + "ecp_index.bin");
+    vector<Node> index = load_index(ecp_dir_path + "ecp_index.bin"); // Read index from binary file
 
-    // Open given input dataset binary file
     fstream dataset_file;
-    dataset_file.open(dataset_file_path, ios::in | ios::binary);
+    dataset_file.open(dataset_file_path, ios::in | ios::binary); // Open given input dataset binary file
 
-    // Read total number of points from binary file
-    uint32_t num_points;
-    dataset_file.read((char *)&num_points, sizeof(uint32_t));
+    uint32_t num_points = 0;
+    dataset_file.read((char *)&num_points, sizeof(uint32_t)); // Read total number of points from binary file
 
-    // Calculate total number of chunks needed
-    uint32_t num_chunks = num_points / chunk_size;
+    uint32_t chunk_size = num_points / num_chunks; // Calculate total number of chunks needed
 
-    // Allocate memory buffer
-    Binary_point *chunk{new Binary_point[chunk_size]{}};       // Buffer for data points
-    Point_meta *point_meta_data{new Point_meta[chunk_size]{}}; // Meta data for each data point in buffer
+    BinaryPoint *chunk{new BinaryPoint[chunk_size]{}};       // Buffer for data points
+    PointMeta *point_meta_data{new PointMeta[chunk_size]{}}; // Meta data for each data point in buffer
 
-    vector<vector<Cluster_meta>> all_chunk_meta;
+    vector<vector<ClusterMeta>> all_chunk_meta; // Vector containing meta data of each chunk file
 
-    for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
+    ///////////////////////////////
+    // CREATE BINARY CHUNK FILES //
+    ///////////////////////////////
+
+    for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++) // Go through each needed chunk
     {
-        memset(chunk, 0, chunk_size * sizeof(Binary_point));         // Reset buffer
-        memset(point_meta_data, 0, chunk_size * sizeof(Point_meta)); // Reset meta data for buffer
+        memset(chunk, 0, chunk_size * sizeof(BinaryPoint));         // Reset buffer
+        memset(point_meta_data, 0, chunk_size * sizeof(PointMeta)); // Reset meta data for buffer
 
-        // Read chunk into buffer
-        dataset_file.seekg((sizeof(uint32_t) + sizeof(uint32_t) + (cur_chunk * chunk_size * sizeof(Binary_point))), dataset_file.beg);
-        dataset_file.read(reinterpret_cast<char *>(chunk), chunk_size * sizeof(Binary_point));
+        dataset_file.seekg((sizeof(uint32_t) + sizeof(uint32_t) + (cur_chunk * chunk_size * sizeof(BinaryPoint))), dataset_file.beg); // Jump to begin of current chunk
+        dataset_file.read(reinterpret_cast<char *>(chunk), chunk_size * sizeof(BinaryPoint));                                         // Read chunk into buffer
 
-        // Asign all points from chunk to a cluster leaf
-        for (unsigned int i = 0; i < chunk_size; i++)
+        for (unsigned int i = 0; i < chunk_size; i++) // Asign all points from chunk to a cluster leaf
         {
             Node *cluster = find_nearest_leaf(chunk[i].descriptors, index);
             point_meta_data[i].buffer_position = i;
@@ -132,43 +146,43 @@ int assign_points_to_cluster(string dataset_file_path, std::string ecp_dir_path,
             point_meta_data[i].point_id = (chunk_size * cur_chunk + i);
         }
 
-        // Sort chunk meta data ascending after cluster_id
-        sort(point_meta_data, point_meta_data + chunk_size, compare_cluster_id);
+        sort(point_meta_data, point_meta_data + chunk_size, compare_cluster_id); // Sort chunk meta data ascending after cluster_id
 
-        // Write assignments to binary chunk
         fstream chunk_file;
         chunk_file.open(ecp_dir_path + "ecp_chunk_" + to_string(cur_chunk) + ".bin", ios::out | ios::binary);
-        for (unsigned int i = 0; i < chunk_size; i++)
+
+        for (unsigned int i = 0; i < chunk_size; i++) // Write assignments to binary chunk file
         {
             chunk_file.write(reinterpret_cast<char *>(&point_meta_data[i].cluster_id), sizeof(uint32_t));
             chunk_file.write(reinterpret_cast<char *>(&point_meta_data[i].point_id), sizeof(uint32_t));
-            chunk_file.write(reinterpret_cast<char *>(&chunk[point_meta_data[i].buffer_position].descriptors), sizeof(Binary_point));
+            chunk_file.write(reinterpret_cast<char *>(&chunk[point_meta_data[i].buffer_position].descriptors), sizeof(BinaryPoint));
         }
+
         chunk_file.close();
 
-        vector<Cluster_meta> chunk_meta_data;
+        vector<ClusterMeta> chunk_meta_data;
         uint32_t num_points = 0;
         uint32_t cur_offset = 0;
 
-        // Write chunk meta data to binary
-        for (unsigned int i = 0; i < chunk_size; i++)
+        for (uint32_t i = 0; i < chunk_size; i++) // Write chunk meta data to binary
         {
-            if (point_meta_data[i].cluster_id == point_meta_data[i + 1].cluster_id)
+            if (point_meta_data[i].cluster_id == point_meta_data[i + 1].cluster_id) // Continue as long as cluster id is the same
             {
                 num_points++;
             }
-            else
+            else // If next cluster id begins
             {
                 num_points++;
-                Cluster_meta cur_chunk_meta;
+                ClusterMeta cur_chunk_meta;
                 cur_chunk_meta.cluster_id = point_meta_data[i].cluster_id;
                 cur_chunk_meta.num_points_in_leaf = num_points;
                 cur_chunk_meta.offset = cur_offset;
-                cur_offset = cur_offset + num_points * sizeof(Cluster_point);
+                cur_offset = cur_offset + num_points * sizeof(ClusterPoint);
                 chunk_meta_data.push_back(cur_chunk_meta);
                 num_points = 0;
             }
         }
+
         all_chunk_meta.push_back(chunk_meta_data);
     }
 
@@ -177,60 +191,62 @@ int assign_points_to_cluster(string dataset_file_path, std::string ecp_dir_path,
 
     dataset_file.close();
 
-    // Merge all chunks
+    ///////////////////////////
+    // MERGE ALL CHUNK FILES //
+    ///////////////////////////
+
     vector<uint32_t> leafs = find_all_leafs(index); // All cluster leaf ids in index
-    vector<Cluster_meta> ecp_cluster_meta_data;     // Meta data describing final database file of cluster assignments
+    vector<ClusterMeta> ecp_cluster_meta_data;      // Meta data describing final database file of cluster assignments
 
     fstream cluster_file;
     cluster_file.open(ecp_dir_path + "ecp_clusters.bin", ios::out | ios::binary);
-    fstream chunk_file;
 
-    // For every leaf in the index tree
-    for (auto leaf : leafs)
+    for (auto leaf : leafs) // Go through each leaf in index tree
     {
-        Cluster_meta cur_cluster_meta;
-        cur_cluster_meta.cluster_id = leaf;             // Remeber cluster id
+        ClusterMeta cur_cluster_meta;
+        cur_cluster_meta.cluster_id = leaf;
         cur_cluster_meta.offset = cluster_file.tellp(); // Remember starting position in binary file for current cluster id
         uint32_t cur_num_points = 0;
 
-        // Search every chunk file for all points assigned to current leaf
-        for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++)
+        for (int cur_chunk = 0; cur_chunk < num_chunks; cur_chunk++) // Search every chunk file for assignments to current leaf
         {
+            ClusterMeta cur_leaf_meta;
+            bool id_found = search_leaf_meta_data(all_chunk_meta[cur_chunk], leaf, cur_leaf_meta); // Check if current chunk file contains assignments to current leaf
 
-            Cluster_meta cur_leaf_meta;
-            int res = search_leaf_meta_data(all_chunk_meta[cur_chunk], leaf, cur_leaf_meta);
-
-            if (res == 0) // If leaf has no assignments in that chunk skip it
+            if (id_found) // If leaf has no assignments in that chunk skip it
             {
-                Cluster_point *merge_buffer{new Cluster_point[cur_leaf_meta.num_points_in_leaf]{}};
-                memset(merge_buffer, 0, cur_leaf_meta.num_points_in_leaf * sizeof(Cluster_point));
+                ClusterPoint *merge_buffer{new ClusterPoint[cur_leaf_meta.num_points_in_leaf]{}}; // Merge buffer
+                memset(merge_buffer, 0, cur_leaf_meta.num_points_in_leaf * sizeof(ClusterPoint)); // Reset merge buffer
 
+                fstream chunk_file;
                 chunk_file.open(ecp_dir_path + "ecp_chunk_" + to_string(cur_chunk) + ".bin", ios::in | ios::binary);
-
                 chunk_file.seekg(cur_leaf_meta.offset, dataset_file.beg);
-                chunk_file.read(reinterpret_cast<char *>(merge_buffer), cur_leaf_meta.num_points_in_leaf * sizeof(Cluster_point));
-                cluster_file.write(reinterpret_cast<char *>(merge_buffer), cur_leaf_meta.num_points_in_leaf * sizeof(Cluster_point));
+                chunk_file.read(reinterpret_cast<char *>(merge_buffer), cur_leaf_meta.num_points_in_leaf * sizeof(ClusterPoint));    // Read leaf part of chunk in buffer
+                cluster_file.write(reinterpret_cast<char *>(merge_buffer), cur_leaf_meta.num_points_in_leaf * sizeof(ClusterPoint)); // Write leaf part from buffer in final clusters database
                 cur_num_points = cur_num_points + cur_leaf_meta.num_points_in_leaf;
-
                 chunk_file.close();
+
                 delete[] merge_buffer;
-            } else {
-                cout << "BUT SKIPPED" << endl;
             }
         }
+
         cur_cluster_meta.num_points_in_leaf = cur_num_points;
         ecp_cluster_meta_data.push_back(cur_cluster_meta); // Save meta data for current cluster
     }
 
     cluster_file.close();
 
-    // Write cluster meta data to binary file
+    /////////////////////////////////////////////
+    // WRITE FINAL CLUSTER META DATA TO BINARY //
+    /////////////////////////////////////////////
+
     uint32_t num_leafs = leafs.size();
     fstream cluster_meta_file;
     string meta_data_file_path = ecp_dir_path + "ecp_cluster_meta.bin";
     cluster_meta_file.open(meta_data_file_path, ios::out | ios::binary);
     cluster_meta_file.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
-    for (unsigned int i = 0; i < num_leafs; i++)
+
+    for (uint32_t i = 0; i < num_leafs; i++)
     {
         uint32_t cur_id = ecp_cluster_meta_data.at(i).cluster_id;
         uint32_t cur_num_points_in_leaf = ecp_cluster_meta_data.at(i).num_points_in_leaf;

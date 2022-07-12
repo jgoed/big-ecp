@@ -3,6 +3,6 @@
 
 #include <string>
 
-int assign_points_to_cluster(std::string dataset_file_path, std::string ecp_dir_path, unsigned int chunk_size);
+int assign_points_to_cluster(std::string dataset_file_path, std::string ecp_dir_path, int num_chunks);
 
 #endif
