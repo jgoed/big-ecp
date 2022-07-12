@@ -224,7 +224,7 @@ std::vector<std::vector<unsigned int>> process_query(std::vector<std::vector<flo
     cluster_file_path = ecp_dir_path + "ecp_clusters.bin";
 
     // Load queries from binary file
-    vector<Point> p_queries = load_queries("../../data/query.i8bin");
+    //vector<Point> p_queries = load_queries("../../data/query.i8bin");
 
     vector<vector<unsigned int>> results;
 
@@ -236,11 +236,9 @@ std::vector<std::vector<unsigned int>> process_query(std::vector<std::vector<flo
         {
             cur_query_point.push_back(static_cast<int8_t>(f));
         }
-
         vector<unsigned int> result = query(index, cur_query_point.data(), k, b, L);
-        // YOU NEED TO CONVERT !!!
-        // vector<int8_t> desc(q.descriptors, q.descriptors + 100);
-        // vector<unsigned int> result = query(index, desc.data(), k, b, L);
+        
+        // vector<unsigned int> result = query(index, q.descriptors, k, b, L);
         results.push_back(result);
     }
 
