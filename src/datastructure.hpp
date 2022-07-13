@@ -4,13 +4,20 @@
 #include <bits/stdc++.h>
 #include <vector>
 
-extern uint32_t global_num_dimensions;
-extern uint32_t global_point_size;
+#define DATATYPE int8_t
+
+namespace globals
+{
+    extern const float FLOAT_MAX;
+    extern const float FLOAT_MIN;
+    extern uint32_t DIST_CALCULATIONS;
+    extern uint32_t NUM_DIMENSIONS;
+}
 
 struct Point
 {
     uint32_t id;
-    int8_t descriptors[100];
+    DATATYPE descriptors[100];
 };
 
 struct Node
@@ -22,7 +29,7 @@ struct Node
 
 struct BinaryPoint
 {
-    int8_t descriptors[100];
+    DATATYPE descriptors[100];
 };
 
 struct PointMeta
@@ -43,7 +50,7 @@ struct ClusterPoint
 {
     uint32_t cluster_id;
     uint32_t point_id;
-    int8_t descriptor[100];
+    DATATYPE descriptor[100];
 };
 
 #endif

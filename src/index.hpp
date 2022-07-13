@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-int create_index(std::string dataset_file_path, std::string ecp_dir_path, int L, int desired_cluster_size);
+int create_index(std::string dataset_file_path, std::string ecp_dir_path, int L, int desired_cluster_size, int metric);
 
 std::vector<Node> load_index(std::string index_file_path);
 

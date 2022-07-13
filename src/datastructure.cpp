@@ -1,4 +1,9 @@
 #include "datastructure.hpp"
 
-uint32_t global_num_dimensions = 0;
-uint32_t global_point_size = 0;
+namespace globals
+{
+    const float FLOAT_MAX = std::numeric_limits<float>::max();
+    const float FLOAT_MIN = std::numeric_limits<float>::min();
+    uint32_t DIST_CALCULATIONS = 0;
+    uint32_t NUM_DIMENSIONS;
+}

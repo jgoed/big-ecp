@@ -17,7 +17,7 @@ Node load_node(fstream &index_file, uint32_t &read_nodes)
     uint32_t num_children;
     index_file.read(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
     index_file.read(reinterpret_cast<char *>(&node.leader.id), sizeof(uint32_t));
-    index_file.read(reinterpret_cast<char *>(node.leader.descriptors), global_point_size);
+    index_file.read(reinterpret_cast<char *>(node.leader.descriptors), sizeof(DATATYPE) * globals::NUM_DIMENSIONS);
     index_file.read(reinterpret_cast<char *>(&num_children), sizeof(uint32_t));
     for (uint32_t i = 0; i < num_children; i++)
     {
@@ -53,7 +53,7 @@ void save_node(fstream &index_file, Node node, uint32_t &num_nodes_in_index)
     num_nodes_in_index++;
     index_file.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
     index_file.write(reinterpret_cast<char *>(&node.leader.id), sizeof(uint32_t));
-    index_file.write(reinterpret_cast<char *>(node.leader.descriptors), global_point_size);
+    index_file.write(reinterpret_cast<char *>(node.leader.descriptors), sizeof(DATATYPE) * globals::NUM_DIMENSIONS);
     uint32_t cur_num_children = node.children.size();
     index_file.write(reinterpret_cast<char *>(&cur_num_children), sizeof(uint32_t));
     for (auto child : node.children)
@@ -71,7 +71,7 @@ Node *get_closest_node_from_uncomplete_index(vector<Node> &uncomplete_index, int
     Node *closest = nullptr;
     for (Node &node : uncomplete_index)
     {
-        const float distance = euclidean_distance(query, &node.leader.descriptors[0]);
+        const float distance = distance::g_distance_function(query, &node.leader.descriptors[0], max);
         if (distance < max)
         {
             max = distance;
@@ -94,8 +94,8 @@ Node create_node(fstream &dataset_file, uint32_t position, uint32_t &unique_node
     node.id = unique_node_id;
     unique_node_id++;
     node.leader.id = position;
-    dataset_file.seekg((sizeof(uint32_t) + sizeof(uint32_t) + position * global_point_size), dataset_file.beg);
-    dataset_file.read(reinterpret_cast<char *>(node.leader.descriptors), global_point_size);
+    dataset_file.seekg((sizeof(uint32_t) + sizeof(uint32_t) + position * sizeof(DATATYPE) * globals::NUM_DIMENSIONS), dataset_file.beg);
+    dataset_file.read(reinterpret_cast<char *>(node.leader.descriptors), sizeof(DATATYPE) * globals::NUM_DIMENSIONS);
     return node;
 }
 
@@ -131,17 +131,19 @@ vector<uint32_t> create_random_unique_numbers(uint32_t amount, uint32_t max_numb
 /**
  * Create index for given dataset
  */
-int create_index(string dataset_file_path, string ecp_dir_path, int L, int desired_cluster_size)
+int create_index(string dataset_file_path, string ecp_dir_path, int L, int desired_cluster_size, int metric)
 {
     fstream dataset_file;
     dataset_file.open(dataset_file_path, ios::in | ios::binary); // Open given input dataset binary file
 
     uint32_t num_points = 0;
-    dataset_file.read((char *)&num_points, sizeof(uint32_t));            // Total number of points with n demensions
-    dataset_file.read((char *)&global_num_dimensions, sizeof(uint32_t)); // Total number of dimensions for one point
-    global_point_size = sizeof(uint8_t) * global_num_dimensions;         // Calculate global size of one point
+    dataset_file.read((char *)&num_points, sizeof(uint32_t));              // Total number of points with n demensions
+    dataset_file.read((char *)&globals::NUM_DIMENSIONS, sizeof(uint32_t)); // Total number of dimensions for one point
 
-    uint32_t num_leaders = ceil(num_points / (desired_cluster_size / (global_point_size + sizeof(uint32_t)))); // Calculate overall number of leaders
+    auto cur_metric = static_cast<distance::Metric>(metric);
+    distance::set_distance_function(cur_metric); // Set distance function globally
+
+    uint32_t num_leaders = ceil(num_points / (desired_cluster_size / (sizeof(DATATYPE) * globals::NUM_DIMENSIONS + sizeof(uint32_t)))); // Calculate overall number of leaders
 
     // Generate random leaders
     // NOTE: Currently not used due to make debugging easier, otherwise use this below: random_leader_ids.at(i)

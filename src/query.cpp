@@ -66,7 +66,7 @@ vector<ClusterPoint> load_leaf(string cluster_file_path, vector<ClusterMeta> clu
 /**
  * Compares query point to each point in cluster and accumulates the k nearest points in 'nearest_points'.
  */
-void scan_leaf_node(int8_t *query, uint32_t &cluster_id, const unsigned int k, vector<pair<unsigned int, float>> &nearest_points)
+void scan_leaf_node(DATATYPE *query, uint32_t &cluster_id, const unsigned int k, vector<pair<unsigned int, float>> &nearest_points)
 {
     float max_distance = std::numeric_limits<float>::max();
 
@@ -79,7 +79,7 @@ void scan_leaf_node(int8_t *query, uint32_t &cluster_id, const unsigned int k, v
     {
         if (nearest_points.size() < k)
         {
-            float dist = euclidean_distance(query, point.descriptor);
+            float dist = distance::g_distance_function(query, point.descriptor, globals::FLOAT_MAX);
             nearest_points.emplace_back(point.point_id, dist);
             if (nearest_points.size() == k)
             {
@@ -88,7 +88,7 @@ void scan_leaf_node(int8_t *query, uint32_t &cluster_id, const unsigned int k, v
         }
         else
         {
-            float dist = euclidean_distance(query, point.descriptor);
+            float dist = distance::g_distance_function(query, point.descriptor, max_distance);
             if (dist < max_distance)
             {
                 const unsigned int max_index = index_to_max_element(nearest_points);
@@ -104,13 +104,13 @@ void scan_leaf_node(int8_t *query, uint32_t &cluster_id, const unsigned int k, v
  * O(b) where b is requested number of clusters to do k-nn on.
  * Returns tuple containing (index, worst_distance)
  */
-pair<int, float> find_furthest_node(int8_t *&query, vector<Node *> &nodes)
+pair<int, float> find_furthest_node(DATATYPE *&query, vector<Node *> &nodes)
 {
     pair<int, float> worst = make_pair(-1, -1.0);
     for (unsigned int i = 0; i < nodes.size(); i++)
     {
         const float dst =
-            euclidean_distance(query, nodes[i]->leader.descriptors);
+            distance::g_distance_function(query, nodes[i]->leader.descriptors, globals::FLOAT_MAX);
         if (dst > worst.second)
         {
             worst.first = i;
@@ -123,7 +123,7 @@ pair<int, float> find_furthest_node(int8_t *&query, vector<Node *> &nodes)
 /**
  * Compares vector of nodes to query and returns b closest nodes in given accumulator vector.
  */
-void scan_node(int8_t *query, vector<Node> &nodes, unsigned int &b, vector<Node *> &nodes_accumulated)
+void scan_node(DATATYPE *query, vector<Node> &nodes, unsigned int &b, vector<Node *> &nodes_accumulated)
 {
     pair<int, float> furthest_node = make_pair(-1, -1.0);
     if (nodes_accumulated.size() >= b)
@@ -142,7 +142,7 @@ void scan_node(int8_t *query, vector<Node> &nodes, unsigned int &b, vector<Node 
         }
         else
         {
-            if (euclidean_distance(query, node.leader.descriptors) < furthest_node.second)
+            if (distance::g_distance_function(query, node.leader.descriptors, furthest_node.second) < furthest_node.second)
             {
                 nodes_accumulated[furthest_node.first] = &node;
                 furthest_node = find_furthest_node(query, nodes_accumulated);
@@ -154,7 +154,7 @@ void scan_node(int8_t *query, vector<Node> &nodes, unsigned int &b, vector<Node 
 /**
  * Traverses node children one level at a time to find b nearest
  */
-vector<Node *> find_b_nearest_clusters(vector<Node> &root, int8_t *query, unsigned int b, unsigned int L)
+vector<Node *> find_b_nearest_clusters(vector<Node> &root, DATATYPE *query, unsigned int b, unsigned int L)
 {
     vector<Node *> b_best;
     b_best.reserve(b);
@@ -176,7 +176,7 @@ vector<Node *> find_b_nearest_clusters(vector<Node> &root, int8_t *query, unsign
 /**
  * Find nearest neighbors
  */
-vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, int8_t *query, const unsigned int k, const unsigned int b, unsigned int L)
+vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, DATATYPE *query, const unsigned int k, const unsigned int b, unsigned int L)
 {
     vector<Node *> b_nearest_clusters{find_b_nearest_clusters(root, query, b, L)};
     vector<pair<unsigned int, float>> k_nearest_points;
@@ -192,7 +192,7 @@ vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, int8_t
 /**
  * Search k nearest indexes in b nearest cluster from given index
  */
-vector<unsigned int> query(vector<Node> &index, int8_t *query, unsigned int k, int b, int L)
+vector<unsigned int> query(vector<Node> &index, DATATYPE *query, unsigned int k, int b, int L)
 {
     auto nearest_points = k_nearest_neighbors(index, query, k, b, L);
     vector<unsigned int> nearest_indexes;
@@ -225,21 +225,25 @@ vector<ClusterMeta> load_meta_data(string meta_data_file_path)
 /**
  * Search k nearest neighbors in b clusters for every given query
  */
-vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string ecp_dir_path, int k, int b, int L)
+vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string ecp_dir_path, int metric, int k, int b, int L)
 {
     vector<Node> index = load_index(ecp_dir_path + "ecp_index.bin");           // Load index from binary file
     cluster_meta_data = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin"); // Load index meta data from binary file
     cluster_file_path = ecp_dir_path + "ecp_clusters.bin";                     // Set file path for clusters meta data
 
+    cout << "GLOBAL DISTANCE IN QUERY:" << globals::NUM_DIMENSIONS << endl;
+    auto cur_metric = static_cast<distance::Metric>(metric);
+    distance::set_distance_function(cur_metric); // Set distance function globally
+
     vector<vector<unsigned int>> results;
 
     for (auto q : queries)
     {
-        vector<int8_t> cur_query_point;
+        vector<DATATYPE> cur_query_point;
         cur_query_point.reserve(q.size());
-        for (const auto &f : q) // Convert every query value from float to int8_t
+        for (const auto &f : q) // Convert every query value from float to DATATYPE
         {
-            cur_query_point.push_back(static_cast<int8_t>(f));
+            cur_query_point.push_back(static_cast<DATATYPE>(f));
         }
 
         vector<unsigned int> result = query(index, cur_query_point.data(), k, b, L); // Start query process
