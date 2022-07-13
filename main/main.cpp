@@ -69,7 +69,7 @@ int main()
 {
     string ecp_dir_path = "../../data/";
     string dataset_file_path = ecp_dir_path + "spacev1b_base_1M.i8bin";
-    int L = 3;
+    int L = 1;
     int desired_cluster_size = 512000;
     int metric = 0;
     int num_chunks = 2;

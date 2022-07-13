@@ -231,9 +231,9 @@ vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string
     cluster_meta_data = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin"); // Load index meta data from binary file
     cluster_file_path = ecp_dir_path + "ecp_clusters.bin";                     // Set file path for clusters meta data
 
-    cout << "GLOBAL DISTANCE IN QUERY:" << globals::NUM_DIMENSIONS << endl;
-    auto cur_metric = static_cast<distance::Metric>(metric);
-    distance::set_distance_function(cur_metric); // Set distance function globally
+    cout << "GLOBAL DIMENSIONS IN QUERY:" << globals::NUM_DIMENSIONS << endl;
+    // auto cur_metric = static_cast<distance::Metric>(metric);
+    // distance::set_distance_function(cur_metric); // Set distance function globally
 
     vector<vector<unsigned int>> results;
 

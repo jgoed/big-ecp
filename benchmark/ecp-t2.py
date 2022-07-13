@@ -50,7 +50,7 @@ class Ecp(BaseANN):
         ds = DATASETS[dataset]()
         self.index_dir = self.create_index_dir(ds) + "/"
         dataset_file_path = ds.get_dataset_fn()
-        self.index_file_path = ecp.ecp_create_index(dataset_file_path, self.index_dir, self.L, self.DCS. self.METRIC)
+        self.index_file_path = ecp.ecp_create_index(dataset_file_path, self.index_dir, self.L, self.DCS, self.METRIC)
         self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_dir, self.NC, self.METRIC)
 
     def load_index(self, dataset):
