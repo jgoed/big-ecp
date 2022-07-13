@@ -225,15 +225,11 @@ vector<ClusterMeta> load_meta_data(string meta_data_file_path)
 /**
  * Search k nearest neighbors in b clusters for every given query
  */
-vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string ecp_dir_path, int metric, int k, int b, int L)
+vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string ecp_dir_path, int k, int b, int L)
 {
     vector<Node> index = load_index(ecp_dir_path + "ecp_index.bin");           // Load index from binary file
     cluster_meta_data = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin"); // Load index meta data from binary file
     cluster_file_path = ecp_dir_path + "ecp_clusters.bin";                     // Set file path for clusters meta data
-
-    cout << "GLOBAL DIMENSIONS IN QUERY:" << globals::NUM_DIMENSIONS << endl;
-    // auto cur_metric = static_cast<distance::Metric>(metric);
-    // distance::set_distance_function(cur_metric); // Set distance function globally
 
     vector<vector<unsigned int>> results;
 

@@ -109,7 +109,7 @@ Node *find_nearest_leaf(DATATYPE *query, vector<Node> &nodes)
 /**
  * Assign all points of given input dataset to leafs of given index and write it down in binary file
  */
-int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int num_chunks, int metric)
+int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int num_chunks)
 {
     vector<Node> index = load_index(ecp_dir_path + "ecp_index.bin"); // Read index from binary file
 
@@ -119,9 +119,6 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
     uint32_t num_points = 0;
     dataset_file.read((char *)&num_points, sizeof(uint32_t));              // Read total number of points from binary file
     dataset_file.read((char *)&globals::NUM_DIMENSIONS, sizeof(uint32_t)); // Total number of dimensions for one point
-
-    // auto cur_metric = static_cast<distance::Metric>(metric);
-    // distance::set_distance_function(cur_metric); // Set distance function globally
 
     uint32_t chunk_size = num_points / num_chunks; // Calculate total number of chunks needed
 

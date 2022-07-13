@@ -11,14 +11,14 @@ namespace ecp
         return create_index(dataset_file_path, ecp_dir_path, L, desired_cluster_size, metric);
     }
 
-    int ecp_assign_points_to_cluster(std::string dataset_file_path, std::string ecp_dir_path, int num_chunks, int metric)
+    int ecp_assign_points_to_cluster(std::string dataset_file_path, std::string ecp_dir_path, int num_chunks)
     {
-        return assign_points_to_cluster(dataset_file_path, ecp_dir_path, num_chunks, metric);
+        return assign_points_to_cluster(dataset_file_path, ecp_dir_path, num_chunks);
     }
 
-    std::vector<std::vector<unsigned int>> ecp_process_query(std::vector<std::vector<float>> queries, std::string ecp_dir_path, int metric, int k, int b, int L)
+    std::vector<std::vector<unsigned int>> ecp_process_query(std::vector<std::vector<float>> queries, std::string ecp_dir_path, int k, int b, int L)
     {
-        return process_query(queries, ecp_dir_path, metric, k, b, L);
+        return process_query(queries, ecp_dir_path, k, b, L);
     }
 
 }
