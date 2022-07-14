@@ -76,13 +76,13 @@ bool compare_cluster_id(PointMeta p1, PointMeta p2)
 /**
  * Get closest node from given vector of nodes
  */
-Node *get_closest_node(vector<Node> &nodes, int8_t *query)
+Node *get_closest_node(vector<Node> &nodes, DATATYPE *query)
 {
     float max = numeric_limits<float>::max();
     Node *closest = nullptr;
     for (Node &node : nodes)
     {
-        const float distance = euclidean_distance(query, &node.leader.descriptors[0]);
+        const float distance = distance::g_distance_function(query, &node.leader.descriptors[0], max);
 
         if (distance < max)
         {
@@ -96,7 +96,7 @@ Node *get_closest_node(vector<Node> &nodes, int8_t *query)
 /**
  * Find nearest leaf for given query point
  */
-Node *find_nearest_leaf(int8_t *query, vector<Node> &nodes)
+Node *find_nearest_leaf(DATATYPE *query, vector<Node> &nodes)
 {
     Node *closest_cluster = get_closest_node(nodes, query);
     if (!closest_cluster->children.empty())
@@ -117,7 +117,8 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
     dataset_file.open(dataset_file_path, ios::in | ios::binary); // Open given input dataset binary file
 
     uint32_t num_points = 0;
-    dataset_file.read((char *)&num_points, sizeof(uint32_t)); // Read total number of points from binary file
+    dataset_file.read((char *)&num_points, sizeof(uint32_t));              // Read total number of points from binary file
+    dataset_file.read((char *)&globals::NUM_DIMENSIONS, sizeof(uint32_t)); // Total number of dimensions for one point
 
     uint32_t chunk_size = num_points / num_chunks; // Calculate total number of chunks needed
 

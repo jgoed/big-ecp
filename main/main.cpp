@@ -71,15 +71,18 @@ int main()
     string dataset_file_path = ecp_dir_path + "spacev1b_base_1M.i8bin";
     int L = 3;
     int desired_cluster_size = 512000;
+    int metric = 0;
     int num_chunks = 2;
     int k = 10;
     int b = 1;
     string query_file_path = ecp_dir_path + "query.i8bin";
     vector<vector<float>> queries = load_queries(query_file_path);
 
-    ecp::ecp_create_index(dataset_file_path, ecp_dir_path, L, desired_cluster_size);
+    ecp::ecp_create_index(dataset_file_path, ecp_dir_path, L, desired_cluster_size, metric);
     ecp::ecp_assign_points_to_cluster(dataset_file_path, ecp_dir_path, num_chunks);
     auto results = ecp::ecp_process_query(queries, ecp_dir_path, k, b, L);
+    int stats = ecp::ecp_get_distance_calculation_count();
+    cout << stats << endl;
 
     return 0;
 }
