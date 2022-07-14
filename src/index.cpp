@@ -137,11 +137,20 @@ int create_index(string dataset_file_path, string ecp_dir_path, int L, int desir
     dataset_file.open(dataset_file_path, ios::in | ios::binary); // Open given input dataset binary file
 
     uint32_t num_points = 0;
-    dataset_file.read((char *)&num_points, sizeof(uint32_t));              // Total number of points with n demensions
+    dataset_file.read((char *)&num_points, sizeof(uint32_t));              // Total number of points with n dimensions
     dataset_file.read((char *)&globals::NUM_DIMENSIONS, sizeof(uint32_t)); // Total number of dimensions for one point
 
     auto cur_metric = static_cast<distance::Metric>(metric);
     distance::set_distance_function(cur_metric); // Set distance function globally
+
+    fstream existing_index_file(ecp_dir_path + ECP_INDEX_FILE_NAME);
+    if (existing_index_file.is_open())
+    {
+        cout << "ECP_INDEX: NOT CREATING NEW INDEX, USING EXISTING INDEX FILE FROM " << ecp_dir_path << endl;
+        existing_index_file.close();
+        dataset_file.close();
+        return 0;
+    }
 
     uint32_t num_leaders = ceil(num_points / (desired_cluster_size / (sizeof(DATATYPE) * globals::NUM_DIMENSIONS + sizeof(uint32_t)))); // Calculate overall number of leaders
 
@@ -174,7 +183,7 @@ int create_index(string dataset_file_path, string ecp_dir_path, int L, int desir
     dataset_file.close(); // Close input dataset binary file
 
     uint32_t num_nodes_in_index = 0;
-    string index_file_path = ecp_dir_path + "ecp_index.bin"; // Create path to index binary file
+    string index_file_path = ecp_dir_path + ECP_INDEX_FILE_NAME; // Create path to index binary file
     fstream index_file;
     index_file.open(index_file_path, ios::out | ios::binary);                          // Open index binary file
     index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t)); // Write placeholder for total number of nodes in index included

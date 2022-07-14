@@ -5,6 +5,9 @@
 #include <vector>
 
 #define DATATYPE int8_t
+#define ECP_INDEX_FILE_NAME "ecp_index.bin"
+#define ECP_CLUSTERS_FILE_NAME "ecp_clusters.bin"
+#define ECP_CLUSTER_META_FILE_NAME "ecp_cluster_meta.bin"
 
 namespace globals
 {
