@@ -63,6 +63,8 @@ class Ecp(BaseANN):
         queries = X.astype(np.float64)
         result = ecp.ecp_process_query(queries, self.index_dir, self.k, self.b, self.L)
         self.res = result
+        self.stats["dist_comps"] = ecp.ecp_get_distance_calculation_count()
+        print(self.stats["dist_comps"])
 
     def get_results(self):
         """
@@ -76,3 +78,19 @@ class Ecp(BaseANN):
         self._query_args = query_args
         self.k = query_args.get("k")
         self.b = query_args.get("b")
+
+    def get_additional(self):
+        """
+        Retrieve additional results.
+        Return a dictionary with metrics
+        and corresponding measured values.
+        The following additional metrics are supported:
+        `mean_latency` in microseconds, if this applies to your algorithm.
+        Skip if your algorithm batches query processing.
+        `latency_999` is the 99.9pc latency in microseconds, if this applies
+        to your algorithm. Skip if your algorithm batches query processing.
+        `dist_comps` is the total number of points in the base set
+        to which a query was compared.
+        `mean_ssd_ios` is the average number of SSD I/Os per query for T2 algorithms.
+        """
+        return self.stats
