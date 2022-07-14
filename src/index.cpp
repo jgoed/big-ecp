@@ -7,8 +7,6 @@
 
 using namespace std;
 
-#define ECP_INDEX_FILE_NAME "ecp_index.bin"
-
 /**
  * Load node from given index binary file into memory
  */

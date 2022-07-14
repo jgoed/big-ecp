@@ -111,7 +111,15 @@ Node *find_nearest_leaf(DATATYPE *query, vector<Node> &nodes)
  */
 int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int num_chunks)
 {
-    vector<Node> index = load_index(ecp_dir_path + "ecp_index.bin"); // Read index from binary file
+    fstream existing_clusters_file(ecp_dir_path + ECP_CLUSTERS_FILE_NAME);
+    if (existing_clusters_file.is_open())
+    {
+        cout << "ECP_ASSIGNMENT: NOT CREATING NEW CLUSTERS, USING EXISTING CLUSTERS FILE FROM " << ecp_dir_path << endl;
+        existing_clusters_file.close();
+        return 0;
+    }
+
+    vector<Node> index = load_index(ecp_dir_path + ECP_INDEX_FILE_NAME); // Read index from binary file
 
     fstream dataset_file;
     dataset_file.open(dataset_file_path, ios::in | ios::binary); // Open given input dataset binary file
@@ -200,7 +208,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
     vector<ClusterMeta> ecp_cluster_meta_data;      // Meta data describing final database file of cluster assignments
 
     fstream cluster_file;
-    cluster_file.open(ecp_dir_path + "ecp_clusters.bin", ios::out | ios::binary);
+    cluster_file.open(ecp_dir_path + ECP_CLUSTERS_FILE_NAME, ios::out | ios::binary);
 
     for (auto leaf : leafs) // Go through each leaf in index tree
     {
@@ -243,7 +251,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
 
     uint32_t num_leafs = leafs.size();
     fstream cluster_meta_file;
-    string meta_data_file_path = ecp_dir_path + "ecp_cluster_meta.bin";
+    string meta_data_file_path = ecp_dir_path + ECP_CLUSTER_META_FILE_NAME;
     cluster_meta_file.open(meta_data_file_path, ios::out | ios::binary);
     cluster_meta_file.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
 
