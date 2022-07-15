@@ -36,34 +36,6 @@ unsigned index_to_max_element(vector<pair<unsigned int, float>> &point_pairs)
 }
 
 /**
- * Load all points for a leaf node from binary file into memory
- */
-vector<ClusterPoint> load_leaf(string cluster_file_path, vector<ClusterMeta> cluster_meta_data, uint32_t leaf_id)
-{
-    ClusterMeta leaf_meta_data;
-    for (auto cur_cluster_meta : cluster_meta_data)
-    {
-        if (cur_cluster_meta.cluster_id == leaf_id)
-        {
-            leaf_meta_data = cur_cluster_meta;
-            break;
-        }
-    }
-    fstream cluster_file;
-    cluster_file.open(cluster_file_path, ios::in | ios::binary);
-    cluster_file.seekg(leaf_meta_data.offset, cluster_file.beg);
-    vector<ClusterPoint> points_in_leaf;
-    for (uint32_t i = 0; i < leaf_meta_data.num_points_in_leaf; i++)
-    {
-        ClusterPoint cur_cluster_point;
-        cluster_file.read((char *)&cur_cluster_point, sizeof(ClusterPoint));
-        points_in_leaf.push_back(cur_cluster_point);
-    }
-    cluster_file.close();
-    return points_in_leaf;
-}
-
-/**
  * Compares query point to each point in cluster and accumulates the k nearest points in 'nearest_points'.
  */
 void scan_leaf_node(DATATYPE *query, uint32_t &cluster_id, const unsigned int k, vector<pair<unsigned int, float>> &nearest_points)
@@ -74,13 +46,28 @@ void scan_leaf_node(DATATYPE *query, uint32_t &cluster_id, const unsigned int k,
     {
         max_distance = nearest_points[index_to_max_element(nearest_points)].second;
     }
-    vector<ClusterPoint> points = load_leaf(cluster_file_path, cluster_meta_data, cluster_id);
-    for (ClusterPoint &point : points)
+
+    ClusterMeta leaf_meta_data;
+    for (auto cur_cluster_meta : cluster_meta_data)
+    {
+        if (cur_cluster_meta.cluster_id == cluster_id)
+        {
+            leaf_meta_data = cur_cluster_meta;
+            break;
+        }
+    }
+    ClusterPoint *search_buffer{new ClusterPoint[leaf_meta_data.num_points_in_leaf]{}};
+    fstream cluster_file;
+    cluster_file.open(cluster_file_path, ios::in | ios::binary);
+    cluster_file.seekg(leaf_meta_data.offset, cluster_file.beg);
+    cluster_file.read(reinterpret_cast<char *>(search_buffer), leaf_meta_data.num_points_in_leaf * sizeof(ClusterPoint));
+
+    for (unsigned int i = 0; i < leaf_meta_data.num_points_in_leaf; i++)
     {
         if (nearest_points.size() < k)
         {
-            float dist = distance::g_distance_function(query, point.descriptor, globals::FLOAT_MAX);
-            nearest_points.emplace_back(point.point_id, dist);
+            float dist = distance::g_distance_function(query, search_buffer[i].descriptor, globals::FLOAT_MAX);
+            nearest_points.emplace_back(search_buffer[i].point_id, dist);
             if (nearest_points.size() == k)
             {
                 max_distance = nearest_points[index_to_max_element(nearest_points)].second;
@@ -88,15 +75,17 @@ void scan_leaf_node(DATATYPE *query, uint32_t &cluster_id, const unsigned int k,
         }
         else
         {
-            float dist = distance::g_distance_function(query, point.descriptor, max_distance);
+            float dist = distance::g_distance_function(query, search_buffer[i].descriptor, max_distance);
             if (dist < max_distance)
             {
                 const unsigned int max_index = index_to_max_element(nearest_points);
-                nearest_points[max_index] = make_pair(point.point_id, dist);
+                nearest_points[max_index] = make_pair(search_buffer[i].point_id, dist);
                 max_distance = nearest_points[index_to_max_element(nearest_points)].second;
             }
         }
     }
+
+    delete[] search_buffer;
 }
 
 /**
