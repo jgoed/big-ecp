@@ -7,7 +7,7 @@ set(CMAKE_VERBOSE_MAKEFILE on)
 if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
   message("GNU compiler found.")
 
-  list(APPEND generalflags "-Wall" "-pthread")
+  list(APPEND generalflags "-Wall")
   message("Appending general flags: " ${generalflags})
   add_compile_options(${generalflags})
 
