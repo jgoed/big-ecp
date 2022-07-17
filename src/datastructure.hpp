@@ -3,6 +3,8 @@
 
 #include <bits/stdc++.h>
 #include <vector>
+#include <atomic>
+#include <string>
 
 #define DATATYPE int8_t
 #define ECP_INDEX_FILE_NAME "ecp_index.bin"
@@ -13,7 +15,7 @@ namespace globals
 {
     extern const float FLOAT_MAX;
     extern const float FLOAT_MIN;
-    extern uint32_t DIST_CALCULATIONS;
+    extern std::atomic<uint32_t> DIST_CALCULATIONS;
     extern uint32_t NUM_DIMENSIONS;
 }
 
@@ -54,6 +56,13 @@ struct ClusterPoint
     uint32_t cluster_id;
     uint32_t point_id;
     DATATYPE descriptor[100];
+};
+
+struct QueryIndex
+{
+    std::vector<Node> index;
+    std::vector<ClusterMeta> meta;
+    std::string cluster_file_path;
 };
 
 #endif
