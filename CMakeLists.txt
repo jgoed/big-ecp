@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.18)
 project(ecp VERSION 1.0 DESCRIPTION "ecp" LANGUAGES CXX)
 
 set(CMAKE_VERBOSE_MAKEFILE on)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
   message("GNU compiler found.")

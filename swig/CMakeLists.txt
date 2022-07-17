@@ -4,7 +4,6 @@ include(UseSWIG)
 find_package(PythonLibs)
 include_directories(${PYTHON_INCLUDE_PATH})
 
-set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 set_property(SOURCE ecp.i PROPERTY CPLUSPLUS ON "-builtin" "-extranative" "-Wall")
@@ -24,6 +23,6 @@ target_include_directories(ecp_wrapper
 swig_link_libraries(ecp_wrapper
   PUBLIC
     ${PYTHON_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
     ecp_lib
-    Threads::Threads
 )
