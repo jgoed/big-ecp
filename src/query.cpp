@@ -3,11 +3,16 @@
 #include "index.hpp"
 
 #include <limits.h>
+#include <thread>
+#include <future>
+
+#include <queue>
+#include <vector>
+#include <future>
+#include <iostream>
 
 using namespace std;
 
-vector<ClusterMeta> cluster_meta_data; // Global variable to prevent passing parameter though many functions
-string cluster_file_path;              // Global variable to prevent passing parameter though many functions
 
 /**
  * Compare to distances
@@ -38,7 +43,7 @@ unsigned index_to_max_element(vector<pair<unsigned int, float>> &point_pairs)
 /**
  * Compares query point to each point in cluster and accumulates the k nearest points in 'nearest_points'.
  */
-void scan_leaf_node(DATATYPE *query, uint32_t &cluster_id, const unsigned int k, vector<pair<unsigned int, float>> &nearest_points)
+void scan_leaf_node(QueryIndex &index, DATATYPE *query, uint32_t &cluster_id, const unsigned int k, vector<pair<unsigned int, float>> &nearest_points)
 {
     float max_distance = std::numeric_limits<float>::max();
 
@@ -48,7 +53,7 @@ void scan_leaf_node(DATATYPE *query, uint32_t &cluster_id, const unsigned int k,
     }
 
     ClusterMeta leaf_meta_data;
-    for (auto cur_cluster_meta : cluster_meta_data)
+    for (auto cur_cluster_meta : index.meta)
     {
         if (cur_cluster_meta.cluster_id == cluster_id)
         {
@@ -58,7 +63,7 @@ void scan_leaf_node(DATATYPE *query, uint32_t &cluster_id, const unsigned int k,
     }
     ClusterPoint *search_buffer{new ClusterPoint[leaf_meta_data.num_points_in_leaf]{}};
     fstream cluster_file;
-    cluster_file.open(cluster_file_path, ios::in | ios::binary);
+    cluster_file.open(index.cluster_file_path, ios::in | ios::binary);
     cluster_file.seekg(leaf_meta_data.offset, cluster_file.beg);
     cluster_file.read(reinterpret_cast<char *>(search_buffer), leaf_meta_data.num_points_in_leaf * sizeof(ClusterPoint));
 
@@ -165,14 +170,14 @@ vector<Node *> find_b_nearest_clusters(vector<Node> &root, DATATYPE *query, unsi
 /**
  * Find nearest neighbors
  */
-vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, DATATYPE *query, const unsigned int k, const unsigned int b, unsigned int L)
+vector<pair<unsigned int, float>> k_nearest_neighbors(QueryIndex &index, DATATYPE *query, const unsigned int k, const unsigned int b, unsigned int L)
 {
-    vector<Node *> b_nearest_clusters{find_b_nearest_clusters(root, query, b, L)};
+    vector<Node *> b_nearest_clusters{find_b_nearest_clusters(index.index, query, b, L)};
     vector<pair<unsigned int, float>> k_nearest_points;
     k_nearest_points.reserve(k);
     for (Node *cluster : b_nearest_clusters)
     {
-        scan_leaf_node(query, cluster->id, k, k_nearest_points);
+        scan_leaf_node(index, query, cluster->id, k, k_nearest_points);
     }
     sort(k_nearest_points.begin(), k_nearest_points.end(), smallest_distance);
     return k_nearest_points;
@@ -181,9 +186,9 @@ vector<pair<unsigned int, float>> k_nearest_neighbors(vector<Node> &root, DATATY
 /**
  * Search k nearest indexes in b nearest cluster from given index
  */
-vector<unsigned int> query(vector<Node> &index, DATATYPE *query, unsigned int k, int b, int L)
+vector<unsigned int> query(QueryIndex index, vector<DATATYPE> query, unsigned int k, int b, int L)
 {
-    auto nearest_points = k_nearest_neighbors(index, query, k, b, L);
+    auto nearest_points = k_nearest_neighbors(index, query.data(), k, b, L);
     vector<unsigned int> nearest_indexes;
     for (auto it = make_move_iterator(nearest_points.begin()), end = make_move_iterator(nearest_points.end()); it != end; ++it)
     {
@@ -216,23 +221,42 @@ vector<ClusterMeta> load_meta_data(string meta_data_file_path)
  */
 vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string ecp_dir_path, int k, int b, int L)
 {
-    vector<Node> index = load_index(ecp_dir_path + "ecp_index.bin");           // Load index from binary file
-    cluster_meta_data = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin"); // Load index meta data from binary file
-    cluster_file_path = ecp_dir_path + "ecp_clusters.bin";                     // Set file path for clusters meta data
+    QueryIndex index;
+    index.index = load_index(ecp_dir_path + "ecp_index.bin");           // Load index from binary file
+    index.meta = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin"); // Load index meta data from binary file
+    index.cluster_file_path = ecp_dir_path + "ecp_clusters.bin";                     // Set file path for clusters meta data
+
+    const auto number_of_threads = std::thread::hardware_concurrency();
 
     vector<vector<unsigned int>> results;
 
-    for (auto q : queries)
+    std::queue<std::future<std::vector<unsigned int>>> queued_future_results;
+
+    for (int i = 0; i < (int)queries.size(); i++)
     {
+
+        if (queued_future_results.size() >= number_of_threads)
+        {
+
+            results.push_back(queued_future_results.front().get()); // blocks until thread is done
+            queued_future_results.pop();
+        }
+
         vector<DATATYPE> cur_query_point;
-        cur_query_point.reserve(q.size());
-        for (const auto &f : q) // Convert every query value from float to DATATYPE
+        cur_query_point.reserve(queries[i].size());
+        for (auto &f : queries[i]) // Convert every query value from float to DATATYPE
         {
             cur_query_point.push_back(static_cast<DATATYPE>(f));
         }
 
-        vector<unsigned int> result = query(index, cur_query_point.data(), k, b, L); // Start query process
-        results.push_back(result);
+        queued_future_results.emplace(async(launch::async, query, index, cur_query_point, k, b, L));
+        // results.push_back(query(index, cur_query_point.data(), k, b, L));
+    }
+
+    while (!queued_future_results.empty())
+    {
+        results.push_back(queued_future_results.front().get()); // blocks until thread is done
+        queued_future_results.pop();
     }
 
     return results;
