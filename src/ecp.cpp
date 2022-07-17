@@ -18,13 +18,13 @@ namespace ecp
 
     std::vector<std::vector<unsigned int>> ecp_process_query(std::vector<std::vector<float>> queries, std::string ecp_dir_path, int k, int b, int L)
     {
-        globals::DIST_CALCULATIONS.store(0);
+        globals::DIST_CALCULATIONS = 0;
         return process_query(queries, ecp_dir_path, k, b, L);
     }
 
     int ecp_get_distance_calculation_count()
     {
-        return globals::DIST_CALCULATIONS.load();
+        return globals::DIST_CALCULATIONS;
     }
 
 }

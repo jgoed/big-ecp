@@ -250,7 +250,6 @@ vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string
         }
 
         queued_future_results.emplace(async(launch::async, query, index, cur_query_point, k, b, L));
-        // results.push_back(query(index, cur_query_point.data(), k, b, L));
     }
 
     while (!queued_future_results.empty())

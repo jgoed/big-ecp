@@ -2,9 +2,8 @@
 #define DATASTRUCTURE_HPP
 
 #include <bits/stdc++.h>
-#include <vector>
-#include <atomic>
 #include <string>
+#include <vector>
 
 #define DATATYPE int8_t
 #define ECP_INDEX_FILE_NAME "ecp_index.bin"
@@ -15,7 +14,7 @@ namespace globals
 {
     extern const float FLOAT_MAX;
     extern const float FLOAT_MIN;
-    extern std::atomic<uint32_t> DIST_CALCULATIONS;
+    extern uint32_t DIST_CALCULATIONS;
     extern uint32_t NUM_DIMENSIONS;
 }
 

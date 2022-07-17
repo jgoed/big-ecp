@@ -63,8 +63,7 @@ namespace distance
 
     inline float euclidean_distance(const DATATYPE *a, const DATATYPE *b, const float &threshold = -1)
     {
-        //globals::DIST_CALCULATIONS++;
-        globals::DIST_CALCULATIONS.fetch_add(1);
+        globals::DIST_CALCULATIONS++;
         float sums[] = {0.0, 0.0, 0.0, 0.0};
         for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; ++i)
         {
