@@ -13,7 +13,6 @@
 
 using namespace std;
 
-
 /**
  * Compare to distances
  */
@@ -224,37 +223,39 @@ vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string
     QueryIndex index;
     index.index = load_index(ecp_dir_path + "ecp_index.bin");           // Load index from binary file
     index.meta = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin"); // Load index meta data from binary file
-    index.cluster_file_path = ecp_dir_path + "ecp_clusters.bin";                     // Set file path for clusters meta data
+    index.cluster_file_path = ecp_dir_path + "ecp_clusters.bin";        // Set file path for clusters meta data
 
-    const auto number_of_threads = std::thread::hardware_concurrency();
+    int num_queries = queries.size();
+    vector<vector<DATATYPE>> converted_queries;
 
+    for (int x = 0; x < num_queries; x++) // Convert all queries to DATATYPE
+    {
+        vector<DATATYPE> cur_conv_query;
+        for (int y = 0; y < globals::NUM_DIMENSIONS; y++)
+        {
+            cur_conv_query.push_back(static_cast<DATATYPE>(queries[x][y]));
+        }
+        converted_queries.push_back(cur_conv_query);
+    }
+
+    const auto num_threads = thread::hardware_concurrency();
+    queue<future<vector<unsigned int>>> queued_future_results;
     vector<vector<unsigned int>> results;
 
-    std::queue<std::future<std::vector<unsigned int>>> queued_future_results;
-
-    for (int i = 0; i < (int)queries.size(); i++)
+    for (int i = 0; i < num_queries; i++)
     {
-
-        if (queued_future_results.size() >= number_of_threads)
+        if (queued_future_results.size() >= num_threads)
         {
-
-            results.push_back(queued_future_results.front().get()); // blocks until thread is done
+            results.push_back(queued_future_results.front().get()); // Blocks until thread is done
             queued_future_results.pop();
         }
 
-        vector<DATATYPE> cur_query_point;
-        cur_query_point.reserve(queries[i].size());
-        for (auto &f : queries[i]) // Convert every query value from float to DATATYPE
-        {
-            cur_query_point.push_back(static_cast<DATATYPE>(f));
-        }
-
-        queued_future_results.emplace(async(launch::async, query, index, cur_query_point, k, b, L));
+        queued_future_results.emplace(async(launch::async, query, index, converted_queries[i], k, b, L));
     }
 
     while (!queued_future_results.empty())
     {
-        results.push_back(queued_future_results.front().get()); // blocks until thread is done
+        results.push_back(queued_future_results.front().get()); // Blocks until thread is done
         queued_future_results.pop();
     }
 
