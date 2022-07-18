@@ -81,8 +81,6 @@ int main()
     ecp::ecp_create_index(dataset_file_path, ecp_dir_path, L, desired_cluster_size, metric);
     ecp::ecp_assign_points_to_cluster(dataset_file_path, ecp_dir_path, num_chunks);
     auto results = ecp::ecp_process_query(queries, ecp_dir_path, k, b, L);
-    int stats = ecp::ecp_get_distance_calculation_count();
-    cout << stats << endl;
 
     return 0;
 }

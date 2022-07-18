@@ -7,9 +7,16 @@ any:
       run-groups:
         base:
           args: |
-              [{"L":3, "DCS":512000, "NC":5, "METRIC":0}]
+              [{"L":3, "DCS":512000, "NC":5, "METRIC":2}]
           query-args: |
-              [{"k":10, "b":1}]
+              [{"k":10, "b":1},
+              {"k":10, "b":2},
+              {"k":10, "b":4},
+              {"k":10, "b":8},
+              {"k":10, "b":16},
+              {"k":10, "b":32},
+              {"k":10, "b":64},
+              {"k":10, "b":128}]
     faiss-ivf:
       docker-tag: billion-scale-benchmark-faissconda
       module: benchmark.algorithms.faiss_inmem

@@ -205,6 +205,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
     ///////////////////////////
 
     vector<uint32_t> leafs = find_all_leafs(index); // All cluster leaf ids in index
+    cout << "ECP: INDEX CONTAINS " << to_string(leafs.size()) << " leafs" << endl;
     vector<ClusterMeta> ecp_cluster_meta_data;      // Meta data describing final database file of cluster assignments
 
     fstream cluster_file;

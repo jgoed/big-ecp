@@ -9,7 +9,7 @@ namespace distance
 
     inline float euclidean_distance_unroll_halt(const DATATYPE *a, const DATATYPE *b, const float &threshold)
     {
-        globals::DIST_CALCULATIONS++;
+        //globals::DIST_CALCULATIONS++;
         float sum = 0;
         for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; i = i + 8)
         {
@@ -28,7 +28,7 @@ namespace distance
 
     inline float euclidean_distance_unroll(const DATATYPE *a, const DATATYPE *b, const float &threshold = -1)
     {
-        globals::DIST_CALCULATIONS++;
+        //globals::DIST_CALCULATIONS++;
         float sums[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; i = i + 8)
         {
@@ -47,7 +47,7 @@ namespace distance
 
     inline float euclidean_distance_halt(const DATATYPE *a, const DATATYPE *b, const float &threshold)
     {
-        globals::DIST_CALCULATIONS++;
+        //globals::DIST_CALCULATIONS++;
         float sum = 0;
         for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; i++)
         {
@@ -63,7 +63,7 @@ namespace distance
 
     inline float euclidean_distance(const DATATYPE *a, const DATATYPE *b, const float &threshold = -1)
     {
-        globals::DIST_CALCULATIONS++;
+        //globals::DIST_CALCULATIONS++;
         float sums[] = {0.0, 0.0, 0.0, 0.0};
         for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; ++i)
         {
@@ -76,7 +76,7 @@ namespace distance
 
     inline float angular_distance(const DATATYPE *a, const DATATYPE *b, const float &max_distance = -1)
     {
-        globals::DIST_CALCULATIONS++;
+        //globals::DIST_CALCULATIONS++;
         float mul = 0.0, d_a = 0.0, d_b = 0.0;
 
         for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; ++i)
@@ -95,7 +95,7 @@ namespace distance
     {
         auto is_dimensionality_divisable_by_8 = ((globals::NUM_DIMENSIONS % 8) == 0);
 
-        std::cout << "metric: ";
+        std::cout << "ECP: METRIC IS ";
         switch (metric)
         {
         case Metric::EUCLIDEAN_OPT_UNROLL:
