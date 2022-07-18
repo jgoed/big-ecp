@@ -4,8 +4,6 @@
 #include <bits/stdc++.h>
 #include "datastructure.hpp"
 
-// float euclidean_distance(const int8_t *a, const int8_t *b);
-
 /**
  * Namespaces contains distance functions used in the index.
  */

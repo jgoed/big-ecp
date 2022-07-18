@@ -59,9 +59,9 @@ struct ClusterPoint
 
 struct QueryIndex
 {
-    std::vector<Node> index;
-    std::vector<ClusterMeta> meta;
-    std::string cluster_file_path;
+    std::vector<Node> top_level;
+    std::vector<ClusterMeta> meta_data;
+    std::string clusters_file_path;
 };
 
 #endif

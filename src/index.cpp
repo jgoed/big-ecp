@@ -146,7 +146,7 @@ int create_index(string dataset_file_path, string ecp_dir_path, int L, int desir
     fstream existing_index_file(ecp_dir_path + ECP_INDEX_FILE_NAME);
     if (existing_index_file.is_open())
     {
-        cout << "ECP_INDEX: NOT CREATING NEW INDEX, USING EXISTING INDEX FILE FROM " << ecp_dir_path << endl;
+        cout << "ECP: NOT CREATING NEW INDEX, USING EXISTING FROM " << ecp_dir_path << endl;
         existing_index_file.close();
         dataset_file.close();
         return 0;

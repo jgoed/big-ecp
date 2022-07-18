@@ -2,14 +2,12 @@
 #include "distance.hpp"
 #include "index.hpp"
 
-#include <limits.h>
-#include <thread>
-#include <future>
-
-#include <queue>
-#include <vector>
 #include <future>
 #include <iostream>
+#include <limits.h>
+#include <queue>
+#include <thread>
+#include <vector>
 
 using namespace std;
 
@@ -52,7 +50,7 @@ void scan_leaf_node(QueryIndex &index, DATATYPE *query, uint32_t &cluster_id, co
     }
 
     ClusterMeta leaf_meta_data;
-    for (auto cur_cluster_meta : index.meta)
+    for (auto cur_cluster_meta : index.meta_data)
     {
         if (cur_cluster_meta.cluster_id == cluster_id)
         {
@@ -62,7 +60,7 @@ void scan_leaf_node(QueryIndex &index, DATATYPE *query, uint32_t &cluster_id, co
     }
     ClusterPoint *search_buffer{new ClusterPoint[leaf_meta_data.num_points_in_leaf]{}};
     fstream cluster_file;
-    cluster_file.open(index.cluster_file_path, ios::in | ios::binary);
+    cluster_file.open(index.clusters_file_path, ios::in | ios::binary);
     cluster_file.seekg(leaf_meta_data.offset, cluster_file.beg);
     cluster_file.read(reinterpret_cast<char *>(search_buffer), leaf_meta_data.num_points_in_leaf * sizeof(ClusterPoint));
 
@@ -171,7 +169,7 @@ vector<Node *> find_b_nearest_clusters(vector<Node> &root, DATATYPE *query, unsi
  */
 vector<pair<unsigned int, float>> k_nearest_neighbors(QueryIndex &index, DATATYPE *query, const unsigned int k, const unsigned int b, unsigned int L)
 {
-    vector<Node *> b_nearest_clusters{find_b_nearest_clusters(index.index, query, b, L)};
+    vector<Node *> b_nearest_clusters{find_b_nearest_clusters(index.top_level, query, b, L)};
     vector<pair<unsigned int, float>> k_nearest_points;
     k_nearest_points.reserve(k);
     for (Node *cluster : b_nearest_clusters)
@@ -220,37 +218,38 @@ vector<ClusterMeta> load_meta_data(string meta_data_file_path)
  */
 vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string ecp_dir_path, int k, int b, int L)
 {
-    QueryIndex index;
-    index.index = load_index(ecp_dir_path + "ecp_index.bin");           // Load index from binary file
-    index.meta = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin"); // Load index meta data from binary file
-    index.cluster_file_path = ecp_dir_path + "ecp_clusters.bin";        // Set file path for clusters meta data
+    QueryIndex index; // Struct to pass around during search
+    index.top_level = load_index(ecp_dir_path + "ecp_index.bin");           // Load index from binary file
+    index.meta_data = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin"); // Load index meta data from binary file
+    index.clusters_file_path = ecp_dir_path + "ecp_clusters.bin";        // Set file path for clusters meta data
 
     int num_queries = queries.size();
+    int num_dimensions = globals::NUM_DIMENSIONS;
     vector<vector<DATATYPE>> converted_queries;
 
     for (int x = 0; x < num_queries; x++) // Convert all queries to DATATYPE
     {
         vector<DATATYPE> cur_conv_query;
-        for (int y = 0; y < globals::NUM_DIMENSIONS; y++)
+        for (int y = 0; y < num_dimensions; y++)
         {
             cur_conv_query.push_back(static_cast<DATATYPE>(queries[x][y]));
         }
         converted_queries.push_back(cur_conv_query);
     }
 
-    const auto num_threads = thread::hardware_concurrency();
-    queue<future<vector<unsigned int>>> queued_future_results;
-    vector<vector<unsigned int>> results;
+    const auto num_threads = thread::hardware_concurrency(); // Total number of availbale threads
+    queue<future<vector<unsigned int>>> queued_future_results; // Collect results from threads
+    vector<vector<unsigned int>> results; // Sorted final results
 
-    for (int i = 0; i < num_queries; i++)
+    for (int i = 0; i < num_queries; i++) // Go through every query
     {
-        if (queued_future_results.size() >= num_threads)
+        if (queued_future_results.size() >= num_threads) // Check if another thread can be started
         {
             results.push_back(queued_future_results.front().get()); // Blocks until thread is done
             queued_future_results.pop();
         }
 
-        queued_future_results.emplace(async(launch::async, query, index, converted_queries[i], k, b, L));
+        queued_future_results.emplace(async(launch::async, query, index, converted_queries[i], k, b, L)); // Start async function call
     }
 
     while (!queued_future_results.empty())
