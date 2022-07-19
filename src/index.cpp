@@ -154,9 +154,7 @@ int create_index(string dataset_file_path, string ecp_dir_path, int L, int desir
 
     uint32_t num_leaders = ceil(num_points / (desired_cluster_size / (sizeof(DATATYPE) * globals::NUM_DIMENSIONS + sizeof(uint32_t)))); // Calculate overall number of leaders
 
-    // Generate random leaders
-    // NOTE: Currently not used due to make debugging easier, otherwise use this below: random_leader_ids.at(i)
-    // vector<uint32_t> random_leader_ids = create_random_unique_numbers(num_leaders, num_points - 1);
+    vector<uint32_t> random_leader_ids = create_random_unique_numbers(num_leaders, num_points - 1);
 
     vector<Node> index; // Create index structure
     uint32_t unique_node_id = 0;
@@ -169,11 +167,11 @@ int create_index(string dataset_file_path, string ecp_dir_path, int L, int desir
         {
             if (cur_lvl == 1) // Top level
             {
-                index.push_back(create_node(dataset_file, i, unique_node_id));
+                index.push_back(create_node(dataset_file, random_leader_ids[i], unique_node_id));
             }
             else // All other levels
             {
-                Node current_node = create_node(dataset_file, i, unique_node_id);
+                Node current_node = create_node(dataset_file, random_leader_ids[i], unique_node_id);
                 Node *clostest_node = get_closest_node_from_uncomplete_index(index, &current_node.leader.descriptors[0], cur_lvl - 1);
                 clostest_node->children.push_back(current_node);
             }

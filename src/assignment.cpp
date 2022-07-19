@@ -114,7 +114,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
     fstream existing_clusters_file(ecp_dir_path + ECP_CLUSTERS_FILE_NAME);
     if (existing_clusters_file.is_open())
     {
-        cout << "ECP_ASSIGNMENT: NOT CREATING NEW CLUSTERS, USING EXISTING CLUSTERS FILE FROM " << ecp_dir_path << endl;
+        cout << "ECP: NOT CREATING NEW CLUSTERS, USING EXISTING CLUSTERS FILE FROM " << ecp_dir_path << endl;
         existing_clusters_file.close();
         return 0;
     }
