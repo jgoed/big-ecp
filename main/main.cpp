@@ -31,9 +31,14 @@ void load_ground_truth()
     for (int i = 0; i < (int)num_queries; i++)
     {
         vector<float> dis(num_knn);
+        // TODO: Gylfi says: Are you sure the .read() will always read as much as you ask it to? 
+        // It may be wise to check is ground_truth_file.gcount the size we expected (or just if there was an error).
+        // same goes for the previous call to read in line #25
         ground_truth_file.read(reinterpret_cast<char *>(dis.data()), sizeof(float) * num_knn);
         dists.push_back(dis);
     }
+    // Gylfi says: You could add a sanity check that checks if the length of the distance vector is equal to the length of the vector of IDs.
+    // If they are not... 
 }
 
 /**
