@@ -1,5 +1,6 @@
 #include <ecp/ecp.hpp>
 
+#include <assert.h>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -23,6 +24,12 @@ pair<vector<vector<uint32_t>>, vector<vector<float>>> load_ground_truth(string g
     {
         vector<uint32_t> ids(num_knn);
         ground_truth_file.read(reinterpret_cast<char *>(ids.data()), sizeof(uint32_t) * num_knn);
+        if ((unsigned int)ground_truth_file.gcount() != sizeof(uint32_t) * num_knn) // If there was an error reading, repeat
+        {
+            cout << "Error: Read amount not enough, repeat." << endl;
+            ground_truth_file.seekg(ground_truth_file.tellg() - ground_truth_file.gcount());
+            ground_truth_file.read(reinterpret_cast<char *>(ids.data()), sizeof(uint32_t) * num_knn);
+        }
         knns.push_back(ids);
     }
 
@@ -31,19 +38,15 @@ pair<vector<vector<uint32_t>>, vector<vector<float>>> load_ground_truth(string g
     for (int i = 0; i < (int)num_queries; i++)
     {
         vector<float> dis(num_knn);
-        // TODO: Gylfi says: Are you sure the .read() will always read as much as you ask it to? 
-        // It may be wise to check is ground_truth_file.gcount the size we expected (or just if there was an error).
-        // same goes for the previous call to read in line #25
         ground_truth_file.read(reinterpret_cast<char *>(dis.data()), sizeof(float) * num_knn);
+        assert(ground_truth_file.fail() == false); // Abort if there is a error while reading
         dists.push_back(dis);
     }
-<<<<<<< HEAD
     ground_truth_file.close();
+
+    assert(knns.size() == dists.size()); // Abort if both vectors are not the same length
+
     return make_pair(knns, dists);
-=======
-    // Gylfi says: You could add a sanity check that checks if the length of the distance vector is equal to the length of the vector of IDs.
-    // If they are not... 
->>>>>>> 11f783cbf8523f0b9f16c52eebf71a10a33f02e4
 }
 
 /**
@@ -70,6 +73,7 @@ vector<vector<float>> load_queries(string query_file_path)
         queries.push_back(query);
     }
     query_file.close();
+    assert(queries.size() == num_queries); // Abort if vector is to small
     return queries;
 }
 
@@ -88,13 +92,15 @@ int main()
     int metric = 0;
     int num_chunks = 2;
     int k = 10;
-    int b = 1;
+    int b = 10;
 
     vector<vector<float>> queries = load_queries(query_file_path);
 
     ecp::ecp_create_index(dataset_file_path, ecp_dir_path, L, desired_cluster_size, metric);
     ecp::ecp_assign_points_to_cluster(dataset_file_path, ecp_dir_path, num_chunks);
     auto results = ecp::ecp_process_query(queries, ecp_dir_path, k, b, L);
+
+    auto ground_truth = load_ground_truth(ground_truth_file_path);
 
     return 0;
 }
