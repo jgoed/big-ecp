@@ -6,6 +6,7 @@
 #include <vector>
 
 #define DATATYPE int8_t
+#define DIMENSIONS 100
 #define ECP_INDEX_FILE_NAME "ecp_index.bin"
 #define ECP_CLUSTERS_FILE_NAME "ecp_clusters.bin"
 #define ECP_CLUSTER_META_FILE_NAME "ecp_cluster_meta.bin"
@@ -15,13 +16,12 @@ namespace globals
     extern const float FLOAT_MAX;
     extern const float FLOAT_MIN;
     extern uint32_t DIST_CALCULATIONS;
-    extern uint32_t NUM_DIMENSIONS;
 }
 
 struct Point
 {
     uint32_t id;
-    DATATYPE descriptors[100];
+    DATATYPE descriptors[DIMENSIONS];
 };
 
 struct Node
@@ -33,7 +33,7 @@ struct Node
 
 struct BinaryPoint
 {
-    DATATYPE descriptors[100];
+    DATATYPE descriptors[DIMENSIONS];
 };
 
 struct PointMeta
@@ -54,7 +54,7 @@ struct ClusterPoint
 {
     uint32_t cluster_id;
     uint32_t point_id;
-    DATATYPE descriptor[100];
+    DATATYPE descriptor[DIMENSIONS];
 };
 
 struct QueryIndex

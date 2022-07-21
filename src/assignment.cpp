@@ -125,8 +125,11 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
     dataset_file.open(dataset_file_path, ios::in | ios::binary); // Open given input dataset binary file
 
     uint32_t num_points = 0;
-    dataset_file.read((char *)&num_points, sizeof(uint32_t));              // Read total number of points from binary file
-    dataset_file.read((char *)&globals::NUM_DIMENSIONS, sizeof(uint32_t)); // Total number of dimensions for one point
+    uint32_t num_dimensions = 0;
+    dataset_file.read((char *)&num_points, sizeof(uint32_t));     // Read total number of points from binary file
+    dataset_file.read((char *)&num_dimensions, sizeof(uint32_t)); // Total number of dimensions for one point
+
+    assert(num_dimensions == DIMENSIONS);
 
     uint32_t chunk_size = num_points / num_chunks; // Calculate total number of chunks needed
 
@@ -206,7 +209,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
 
     vector<uint32_t> leafs = find_all_leafs(index); // All cluster leaf ids in index
     cout << "ECP: INDEX CONTAINS " << to_string(leafs.size()) << " leafs" << endl;
-    vector<ClusterMeta> ecp_cluster_meta_data;      // Meta data describing final database file of cluster assignments
+    vector<ClusterMeta> ecp_cluster_meta_data; // Meta data describing final database file of cluster assignments
 
     fstream cluster_file;
     cluster_file.open(ecp_dir_path + ECP_CLUSTERS_FILE_NAME, ios::out | ios::binary);

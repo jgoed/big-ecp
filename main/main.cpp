@@ -7,10 +7,10 @@
 
 using namespace std;
 
-void load_ground_truth()
+pair<vector<vector<uint32_t>>, vector<vector<float>>> load_ground_truth(string ground_truth_file_path)
 {
     fstream ground_truth_file;
-    ground_truth_file.open("../../data/msspacev-10M", ios::in | ios::binary);
+    ground_truth_file.open(ground_truth_file_path, ios::in | ios::binary);
 
     uint32_t num_queries = 0;
     uint32_t num_knn = 0;
@@ -34,6 +34,8 @@ void load_ground_truth()
         ground_truth_file.read(reinterpret_cast<char *>(dis.data()), sizeof(float) * num_knn);
         dists.push_back(dis);
     }
+    ground_truth_file.close();
+    return make_pair(knns, dists);
 }
 
 /**
@@ -59,6 +61,7 @@ vector<vector<float>> load_queries(string query_file_path)
         }
         queries.push_back(query);
     }
+    query_file.close();
     return queries;
 }
 
@@ -69,13 +72,16 @@ int main()
 {
     string ecp_dir_path = "../../data/";
     string dataset_file_path = ecp_dir_path + "spacev1b_base_1M.i8bin";
+    string query_file_path = ecp_dir_path + "query.i8bin";
+    string ground_truth_file_path = "../../data/msspacev-10M";
+
     int L = 3;
     int desired_cluster_size = 512000;
     int metric = 0;
     int num_chunks = 2;
     int k = 10;
     int b = 1;
-    string query_file_path = ecp_dir_path + "query.i8bin";
+
     vector<vector<float>> queries = load_queries(query_file_path);
 
     ecp::ecp_create_index(dataset_file_path, ecp_dir_path, L, desired_cluster_size, metric);

@@ -11,7 +11,7 @@ namespace distance
     {
         //globals::DIST_CALCULATIONS++;
         float sum = 0;
-        for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; i = i + 8)
+        for (unsigned int i = 0; i < DIMENSIONS; i = i + 8)
         {
             sum += ((a[i] - b[i]) * (a[i] - b[i])) + ((a[i + 1] - b[i + 1]) * (a[i + 1] - b[i + 1])) +
                    ((a[i + 2] - b[i + 2]) * (a[i + 2] - b[i + 2])) + ((a[i + 3] - b[i + 3]) * (a[i + 3] - b[i + 3])) +
@@ -30,7 +30,7 @@ namespace distance
     {
         //globals::DIST_CALCULATIONS++;
         float sums[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; i = i + 8)
+        for (unsigned int i = 0; i < DIMENSIONS; i = i + 8)
         {
             sums[0] += (a[i] - b[i]) * (a[i] - b[i]);
             sums[1] += (a[i + 1] - b[i + 1]) * (a[i + 1] - b[i + 1]);
@@ -49,7 +49,7 @@ namespace distance
     {
         //globals::DIST_CALCULATIONS++;
         float sum = 0;
-        for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; i++)
+        for (unsigned int i = 0; i < DIMENSIONS; i++)
         {
             sum += (a[i] - b[i]) * (a[i] - b[i]);
 
@@ -65,7 +65,7 @@ namespace distance
     {
         //globals::DIST_CALCULATIONS++;
         float sums[] = {0.0, 0.0, 0.0, 0.0};
-        for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; ++i)
+        for (unsigned int i = 0; i < DIMENSIONS; ++i)
         {
             float delta = a[i] - b[i];
             sums[i % 4] += delta * delta;
@@ -79,7 +79,7 @@ namespace distance
         //globals::DIST_CALCULATIONS++;
         float mul = 0.0, d_a = 0.0, d_b = 0.0;
 
-        for (unsigned int i = 0; i < globals::NUM_DIMENSIONS; ++i)
+        for (unsigned int i = 0; i < DIMENSIONS; ++i)
         {
             mul += a[i] * b[i];
             d_a += a[i] * a[i];
@@ -93,7 +93,7 @@ namespace distance
 
     void set_distance_function(Metric metric)
     {
-        auto is_dimensionality_divisable_by_8 = ((globals::NUM_DIMENSIONS % 8) == 0);
+        auto is_dimensionality_divisable_by_8 = ((DIMENSIONS % 8) == 0);
 
         std::cout << "ECP: METRIC IS ";
         switch (metric)

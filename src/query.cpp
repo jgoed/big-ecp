@@ -224,13 +224,15 @@ vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string
     index.clusters_file_path = ecp_dir_path + "ecp_clusters.bin";        // Set file path for clusters meta data
 
     int num_queries = queries.size();
-    int num_dimensions = globals::NUM_DIMENSIONS;
+
+    assert(queries[0].size() == DIMENSIONS);
+
     vector<vector<DATATYPE>> converted_queries;
 
     for (int x = 0; x < num_queries; x++) // Convert all queries to DATATYPE
     {
         vector<DATATYPE> cur_conv_query;
-        for (int y = 0; y < num_dimensions; y++)
+        for (int y = 0; y < DIMENSIONS; y++)
         {
             cur_conv_query.push_back(static_cast<DATATYPE>(queries[x][y]));
         }
