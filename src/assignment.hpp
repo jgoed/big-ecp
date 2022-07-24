@@ -14,10 +14,10 @@ void assign_points_to_cluster(std::string dataset_file_path, std::string ecp_dir
 /**
  * Function prototypes
  */
-Node *find_nearest_leaf(DATATYPE *, std::vector<Node> &ndes);
+Node *find_nearest_leaf(DATATYPE *, std::vector<Node> &);
 Node *get_closest_node(std::vector<Node> &, DATATYPE *);
 bool compare_cluster_id(PointMeta , PointMeta );
-std::vector<uint32_t> find_all_leafs(std::vector<Node> &root);
-bool search_leaf_meta_data(std::vector<ClusterMeta> chunk_meta, uint32_t leaf, ClusterMeta &cur_leaf_meta);
+std::vector<uint32_t> find_all_leafs(std::vector<Node> &);
+bool search_leaf_meta_data(std::vector<ClusterMeta> , uint32_t , ClusterMeta &);
 
 #endif
