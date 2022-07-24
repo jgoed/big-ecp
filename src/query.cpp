@@ -42,13 +42,16 @@ vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string
         converted_queries.push_back(cur_conv_query);
     }
 
+    vector<vector<unsigned int>> results; // Sorted final results
+
+#ifdef MULTI_THREADING // Using multi-threading depening on #define in datastructure.cpp
+
     //////////////////////////////////////////////////////////////////////////
     // Start a thread for each query point and collect all results in order //
     //////////////////////////////////////////////////////////////////////////
 
     const auto num_threads = thread::hardware_concurrency();   // Total number of availbale threads
     queue<future<vector<unsigned int>>> queued_future_results; // Collect results from threads
-    vector<vector<unsigned int>> results;                      // Sorted final results
 
     for (int i = 0; i < num_queries; i++) // Go through every query
     {
@@ -66,6 +69,20 @@ vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string
         results.push_back(queued_future_results.front().get()); // Blocks until thread is done
         queued_future_results.pop();
     }
+
+    //////////////////////////////////////////////////////
+    // Do every query after another only using one core //
+    //////////////////////////////////////////////////////
+
+#else // MULTI_THREADING
+
+    for (int i = 0; i < num_queries; i++) // Go through every query
+    {
+        vector<unsigned int> cur_results = query(index, converted_queries[i], k, b, L);
+        results.push_back(cur_results);
+    }
+
+#endif // MULTI_THREADING
 
     return results;
 }

@@ -9,7 +9,9 @@ namespace distance
 
     inline float euclidean_distance_unroll_halt(const DATATYPE *a, const DATATYPE *b, const float &threshold)
     {
-        //globals::DIST_CALCULATIONS++;
+#ifndef MULTI_THREADING
+        globals::DIST_CALCULATIONS++;
+#endif
         float sum = 0;
         for (unsigned int i = 0; i < DIMENSIONS; i = i + 8)
         {
@@ -28,7 +30,9 @@ namespace distance
 
     inline float euclidean_distance_unroll(const DATATYPE *a, const DATATYPE *b, const float &threshold = -1)
     {
-        //globals::DIST_CALCULATIONS++;
+#ifndef MULTI_THREADING
+        globals::DIST_CALCULATIONS++;
+#endif
         float sums[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         for (unsigned int i = 0; i < DIMENSIONS; i = i + 8)
         {
@@ -47,7 +51,9 @@ namespace distance
 
     inline float euclidean_distance_halt(const DATATYPE *a, const DATATYPE *b, const float &threshold)
     {
-        //globals::DIST_CALCULATIONS++;
+#ifndef MULTI_THREADING
+        globals::DIST_CALCULATIONS++;
+#endif
         float sum = 0;
         for (unsigned int i = 0; i < DIMENSIONS; i++)
         {
@@ -63,7 +69,9 @@ namespace distance
 
     inline float euclidean_distance(const DATATYPE *a, const DATATYPE *b, const float &threshold = -1)
     {
-        //globals::DIST_CALCULATIONS++;
+#ifndef MULTI_THREADING
+        globals::DIST_CALCULATIONS++;
+#endif
         float sums[] = {0.0, 0.0, 0.0, 0.0};
         for (unsigned int i = 0; i < DIMENSIONS; ++i)
         {
@@ -76,7 +84,9 @@ namespace distance
 
     inline float angular_distance(const DATATYPE *a, const DATATYPE *b, const float &max_distance = -1)
     {
-        //globals::DIST_CALCULATIONS++;
+#ifndef MULTI_THREADING
+        globals::DIST_CALCULATIONS++;
+#endif
         float mul = 0.0, d_a = 0.0, d_b = 0.0;
 
         for (unsigned int i = 0; i < DIMENSIONS; ++i)

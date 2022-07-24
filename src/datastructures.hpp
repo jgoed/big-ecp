@@ -10,6 +10,7 @@
 #define ECP_INDEX_FILE_NAME "ecp_index.bin"               // File name for index binary file
 #define ECP_CLUSTERS_FILE_NAME "ecp_clusters.bin"         // File name for clusters binary file
 #define ECP_CLUSTER_META_FILE_NAME "ecp_cluster_meta.bin" // File name for cluster meta data binary file
+#define MULTI_THREADING                                   // Uncomment to use multihreading
 
 namespace globals // Global variables
 {

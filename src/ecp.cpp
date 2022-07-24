@@ -22,9 +22,11 @@ namespace ecp
         return process_query(queries, ecp_dir_path, k, b, L);
     }
 
+#ifndef MULTI_THREADING
     int ecp_get_distance_calculation_count()
     {
         return globals::DIST_CALCULATIONS;
     }
+#endif
 
 }
