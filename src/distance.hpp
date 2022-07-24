@@ -2,7 +2,7 @@
 #define DISTANCE_HPP
 
 #include <bits/stdc++.h>
-#include "datastructure.hpp"
+#include "datastructures.hpp"
 
 /**
  * Namespaces contains distance functions used in the index.

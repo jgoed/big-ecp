@@ -6,13 +6,13 @@ project(ecp_lib
 add_library(${PROJECT_NAME}
     SHARED
         assignment.cpp
-        datastructure.cpp
+        datastructures.cpp
         distance.cpp
         ecp.cpp
         index.hpp
         query.hpp
         assignment.hpp
-        datastructure.hpp
+        datastructures.hpp
         distance.hpp
         index.cpp
         query.cpp

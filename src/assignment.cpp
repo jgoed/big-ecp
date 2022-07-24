@@ -1,4 +1,4 @@
-#include "datastructure.hpp"
+#include "datastructures.hpp"
 #include "distance.hpp"
 #include "index.hpp"
 
@@ -49,7 +49,7 @@ vector<uint32_t> find_all_leafs(vector<Node> &root)
             q.pop();
             if (node.children.empty())
             {
-                leaf_ids.push_back(node.id);
+                leaf_ids.push_back(node.node_id);
             }
             for (unsigned int i = 0; i < node.children.size(); i++)
             {
@@ -131,7 +131,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
 
     assert(num_dimensions == DIMENSIONS);
 
-    uint32_t chunk_size = num_points / num_chunks; // Calculate total number of chunks needed
+    uint32_t chunk_size = num_points / num_chunks; // Calculate size of one chunk
 
     BinaryPoint *chunk{new BinaryPoint[chunk_size]{}};       // Buffer for data points
     PointMeta *point_meta_data{new PointMeta[chunk_size]{}}; // Meta data for each data point in buffer
@@ -154,7 +154,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
         {
             Node *cluster = find_nearest_leaf(chunk[i].descriptors, index);
             point_meta_data[i].buffer_position = i;
-            point_meta_data[i].cluster_id = cluster->id;
+            point_meta_data[i].cluster_id = cluster->node_id;
             point_meta_data[i].point_id = (chunk_size * cur_chunk + i);
         }
 

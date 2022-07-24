@@ -1,4 +1,4 @@
-#include "datastructure.hpp"
+#include "datastructures.hpp"
 #include "distance.hpp"
 #include "index.hpp"
 
@@ -15,8 +15,8 @@ Node load_node(fstream &index_file, uint32_t &read_nodes)
     read_nodes++;
     Node node;
     uint32_t num_children;
-    index_file.read(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
-    index_file.read(reinterpret_cast<char *>(&node.leader.id), sizeof(uint32_t));
+    index_file.read(reinterpret_cast<char *>(&node.node_id), sizeof(uint32_t));
+    index_file.read(reinterpret_cast<char *>(&node.leader.point_id), sizeof(uint32_t));
     index_file.read(reinterpret_cast<char *>(node.leader.descriptors), sizeof(DATATYPE) * DIMENSIONS);
     index_file.read(reinterpret_cast<char *>(&num_children), sizeof(uint32_t));
     for (uint32_t i = 0; i < num_children; i++)
@@ -51,8 +51,8 @@ vector<Node> load_index(string index_file_path)
 void save_node(fstream &index_file, Node node, uint32_t &num_nodes_in_index)
 {
     num_nodes_in_index++;
-    index_file.write(reinterpret_cast<char *>(&node.id), sizeof(uint32_t));
-    index_file.write(reinterpret_cast<char *>(&node.leader.id), sizeof(uint32_t));
+    index_file.write(reinterpret_cast<char *>(&node.node_id), sizeof(uint32_t));
+    index_file.write(reinterpret_cast<char *>(&node.leader.point_id), sizeof(uint32_t));
     index_file.write(reinterpret_cast<char *>(node.leader.descriptors), sizeof(DATATYPE) * DIMENSIONS);
     uint32_t cur_num_children = node.children.size();
     index_file.write(reinterpret_cast<char *>(&cur_num_children), sizeof(uint32_t));
@@ -91,9 +91,9 @@ Node *get_closest_node_from_uncomplete_index(vector<Node> &uncomplete_index, int
 Node create_node(fstream &dataset_file, uint32_t position, uint32_t &unique_node_id)
 {
     Node node;
-    node.id = unique_node_id;
+    node.node_id = unique_node_id;
     unique_node_id++;
-    node.leader.id = position;
+    node.leader.point_id = position;
     dataset_file.seekg((sizeof(uint32_t) + sizeof(uint32_t) + position * sizeof(DATATYPE) * DIMENSIONS), dataset_file.beg);
     dataset_file.read(reinterpret_cast<char *>(node.leader.descriptors), sizeof(DATATYPE) * DIMENSIONS);
     return node;

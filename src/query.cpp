@@ -1,4 +1,4 @@
-#include "datastructure.hpp"
+#include "datastructures.hpp"
 #include "distance.hpp"
 #include "index.hpp"
 
@@ -42,7 +42,7 @@ unsigned index_to_max_element(vector<pair<unsigned int, float>> &point_pairs)
  */
 void scan_leaf_node(QueryIndex &index, DATATYPE *query, uint32_t &cluster_id, const unsigned int k, vector<pair<unsigned int, float>> &nearest_points)
 {
-    float max_distance = std::numeric_limits<float>::max();
+    float max_distance = globals::FLOAT_MAX;
 
     if (nearest_points.size() >= k)
     {
@@ -174,7 +174,7 @@ vector<pair<unsigned int, float>> k_nearest_neighbors(QueryIndex &index, DATATYP
     k_nearest_points.reserve(k);
     for (Node *cluster : b_nearest_clusters)
     {
-        scan_leaf_node(index, query, cluster->id, k, k_nearest_points);
+        scan_leaf_node(index, query, cluster->node_id, k, k_nearest_points);
     }
     sort(k_nearest_points.begin(), k_nearest_points.end(), smallest_distance);
     return k_nearest_points;
