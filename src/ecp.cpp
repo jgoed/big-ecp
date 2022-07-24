@@ -11,7 +11,7 @@ namespace ecp
         return create_index(dataset_file_path, ecp_dir_path, L, desired_cluster_size, metric);
     }
 
-    int ecp_assign_points_to_cluster(std::string dataset_file_path, std::string ecp_dir_path, int num_chunks)
+    void ecp_assign_points_to_cluster(std::string dataset_file_path, std::string ecp_dir_path, int num_chunks)
     {
         return assign_points_to_cluster(dataset_file_path, ecp_dir_path, num_chunks);
     }

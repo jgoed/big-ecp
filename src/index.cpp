@@ -178,6 +178,7 @@ vector<Node> load_index(string index_file_path)
 {
     fstream index_file;
     index_file.open(index_file_path, ios::in | ios::binary);
+    assert(index_file.fail() == false); // Abort if file can not be opened
     uint32_t num_nodes_to_read = 0;
     index_file.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
     vector<Node> index;

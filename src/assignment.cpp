@@ -1,3 +1,4 @@
+#include "assignment.hpp"
 #include "datastructures.hpp"
 #include "distance.hpp"
 #include "index.hpp"
@@ -14,115 +15,23 @@
 using namespace std;
 
 /**
- * Search if there is assignment data for given leaf in given chunk meta data
- */
-bool search_leaf_meta_data(vector<ClusterMeta> chunk_meta, uint32_t leaf, ClusterMeta &cur_leaf_meta)
-{
-    for (ClusterMeta i : chunk_meta)
-    {
-        if (i.cluster_id == leaf)
-        {
-            cur_leaf_meta = i;
-            return true;
-        }
-    }
-    return false;
-}
-
-/**
- * Find all leafs in a given index
- */
-vector<uint32_t> find_all_leafs(vector<Node> &root)
-{
-    vector<uint32_t> leaf_ids;
-    queue<Node> q;
-    for (auto &cluster : root)
-    {
-        q.push(cluster);
-    }
-    while (!q.empty())
-    {
-        int n = q.size();
-        while (n > 0)
-        {
-            Node node = q.front();
-            q.pop();
-            if (node.children.empty())
-            {
-                leaf_ids.push_back(node.node_id);
-            }
-            for (unsigned int i = 0; i < node.children.size(); i++)
-            {
-                q.push(node.children[i]);
-            }
-            n--;
-        }
-    }
-    return leaf_ids;
-}
-
-/**
- * Compare two cluster ids
- */
-bool compare_cluster_id(PointMeta p1, PointMeta p2)
-{
-    if (p1.cluster_id < p2.cluster_id)
-    {
-        return true;
-    }
-    return false;
-}
-
-/**
- * Get closest node from given vector of nodes
- */
-Node *get_closest_node(vector<Node> &nodes, DATATYPE *query)
-{
-    float max = numeric_limits<float>::max();
-    Node *closest = nullptr;
-    for (Node &node : nodes)
-    {
-        const float distance = distance::g_distance_function(query, &node.leader.descriptors[0], max);
-
-        if (distance < max)
-        {
-            max = distance;
-            closest = &node;
-        }
-    }
-    return closest;
-}
-
-/**
- * Find nearest leaf for given query point
- */
-Node *find_nearest_leaf(DATATYPE *query, vector<Node> &nodes)
-{
-    Node *closest_cluster = get_closest_node(nodes, query);
-    if (!closest_cluster->children.empty())
-    {
-        return find_nearest_leaf(query, closest_cluster->children);
-    }
-    return closest_cluster;
-}
-
-/**
  * Assign all points of given input dataset to leafs of given index and write it down in binary file
  */
-int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int num_chunks)
+void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int num_chunks)
 {
     fstream existing_clusters_file(ecp_dir_path + ECP_CLUSTERS_FILE_NAME);
     if (existing_clusters_file.is_open())
     {
         cout << "ECP: NOT CREATING NEW CLUSTERS, USING EXISTING CLUSTERS FILE FROM " << ecp_dir_path << endl;
         existing_clusters_file.close();
-        return 0;
+        return;
     }
 
     vector<Node> index = load_index(ecp_dir_path + ECP_INDEX_FILE_NAME); // Read index from binary file
 
     fstream dataset_file;
     dataset_file.open(dataset_file_path, ios::in | ios::binary); // Open given input dataset binary file
+    assert(dataset_file.fail() == false);                        // Abort if file can not be opened
 
     uint32_t num_points = 0;
     uint32_t num_dimensions = 0;
@@ -150,7 +59,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
         dataset_file.seekg((sizeof(uint32_t) + sizeof(uint32_t) + (cur_chunk * chunk_size * sizeof(BinaryPoint))), dataset_file.beg); // Jump to begin of current chunk
         dataset_file.read(reinterpret_cast<char *>(chunk), chunk_size * sizeof(BinaryPoint));                                         // Read chunk into buffer
 
-        for (unsigned int i = 0; i < chunk_size; i++) // Asign all points from chunk to a cluster leaf
+        for (unsigned int i = 0; i < chunk_size; i++) // Assign all points from chunk to a cluster leaf
         {
             Node *cluster = find_nearest_leaf(chunk[i].descriptors, index);
             point_meta_data[i].buffer_position = i;
@@ -162,6 +71,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
 
         fstream chunk_file;
         chunk_file.open(ecp_dir_path + "ecp_chunk_" + to_string(cur_chunk) + ".bin", ios::out | ios::binary);
+        assert(chunk_file.fail() == false); // Abort if file can not be opened
 
         for (unsigned int i = 0; i < chunk_size; i++) // Write assignments to binary chunk file
         {
@@ -213,6 +123,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
 
     fstream cluster_file;
     cluster_file.open(ecp_dir_path + ECP_CLUSTERS_FILE_NAME, ios::out | ios::binary);
+    assert(cluster_file.fail() == false); // Abort if file can not be opened
 
     for (auto leaf : leafs) // Go through each leaf in index tree
     {
@@ -233,6 +144,7 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
 
                 fstream chunk_file;
                 chunk_file.open(ecp_dir_path + "ecp_chunk_" + to_string(cur_chunk) + ".bin", ios::in | ios::binary);
+                assert(chunk_file.fail() == false); // Abort if file can not be opened
                 chunk_file.seekg(cur_leaf_meta.offset, dataset_file.beg);
                 chunk_file.read(reinterpret_cast<char *>(merge_buffer), cur_leaf_meta.num_points_in_leaf * sizeof(ClusterPoint));    // Read leaf part of chunk in buffer
                 cluster_file.write(reinterpret_cast<char *>(merge_buffer), cur_leaf_meta.num_points_in_leaf * sizeof(ClusterPoint)); // Write leaf part from buffer in final clusters database
@@ -257,18 +169,112 @@ int assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int 
     fstream cluster_meta_file;
     string meta_data_file_path = ecp_dir_path + ECP_CLUSTER_META_FILE_NAME;
     cluster_meta_file.open(meta_data_file_path, ios::out | ios::binary);
+    assert(cluster_file.fail() == false); // Abort if file can not be opened
     cluster_meta_file.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
 
     for (uint32_t i = 0; i < num_leafs; i++)
     {
-        uint32_t cur_id = ecp_cluster_meta_data.at(i).cluster_id;
-        uint32_t cur_num_points_in_leaf = ecp_cluster_meta_data.at(i).num_points_in_leaf;
-        uint32_t cur_offset = ecp_cluster_meta_data.at(i).offset;
+        uint32_t cur_id = ecp_cluster_meta_data[i].cluster_id;
+        uint32_t cur_num_points_in_leaf = ecp_cluster_meta_data[i].num_points_in_leaf;
+        uint32_t cur_offset = ecp_cluster_meta_data[i].offset;
         cluster_meta_file.write(reinterpret_cast<char *>(&cur_id), sizeof(uint32_t));
         cluster_meta_file.write(reinterpret_cast<char *>(&cur_num_points_in_leaf), sizeof(uint32_t));
         cluster_meta_file.write(reinterpret_cast<char *>(&cur_offset), sizeof(uint32_t));
     }
     cluster_meta_file.close();
 
-    return 0;
+    return;
+}
+
+/**
+ * Find nearest leaf for given query point
+ */
+Node *find_nearest_leaf(DATATYPE *query, vector<Node> &nodes)
+{
+    Node *closest_cluster = get_closest_node(nodes, query);
+    if (!closest_cluster->children.empty())
+    {
+        return find_nearest_leaf(query, closest_cluster->children);
+    }
+    return closest_cluster;
+}
+
+/**
+ * Get closest node from given vector of nodes
+ */
+Node *get_closest_node(vector<Node> &nodes, DATATYPE *query)
+{
+    float max = numeric_limits<float>::max();
+    Node *closest = nullptr;
+    for (Node &node : nodes)
+    {
+        const float distance = distance::g_distance_function(query, &node.leader.descriptors[0], max);
+
+        if (distance < max)
+        {
+            max = distance;
+            closest = &node;
+        }
+    }
+    return closest;
+}
+
+/**
+ * Compare two cluster ids
+ */
+bool compare_cluster_id(PointMeta p1, PointMeta p2)
+{
+    if (p1.cluster_id < p2.cluster_id)
+    {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Find all leafs in a given index
+ */
+vector<uint32_t> find_all_leafs(vector<Node> &root)
+{
+    vector<uint32_t> leaf_ids;
+    queue<Node> q;
+    for (auto &cluster : root)
+    {
+        q.push(cluster);
+    }
+    while (!q.empty())
+    {
+        int n = q.size();
+        while (n > 0)
+        {
+            Node node = q.front();
+            q.pop();
+            if (node.children.empty())
+            {
+                leaf_ids.push_back(node.node_id);
+            }
+            for (unsigned int i = 0; i < node.children.size(); i++)
+            {
+                q.push(node.children[i]);
+            }
+            n--;
+        }
+    }
+    return leaf_ids;
+}
+
+/**
+ * Search if there is assignment data for given leaf in given chunk meta data
+ */
+bool search_leaf_meta_data(vector<ClusterMeta> chunk_meta, uint32_t leaf, ClusterMeta &cur_leaf_meta)
+{
+    for (ClusterMeta i : chunk_meta)
+    {
+        if (i.cluster_id == leaf)
+        {
+            cur_leaf_meta = i;
+            return true;
+        }
+    }
+    return false;
 }
