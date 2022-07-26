@@ -13,7 +13,7 @@ void create_index(std::string dataset_file_path, std::string ecp_dir_path, int L
 /**
  * Load index from given index binary file into memory
  */
-std::vector<Node> load_index(std::string index_file_path);
+std::vector<Node> load_index(std::string index_file_path, int metric);
 
 /**
  * Function prototypes

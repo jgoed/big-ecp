@@ -15,12 +15,12 @@ using namespace std;
 /**
  * Search k nearest neighbors in b clusters for every given query
  */
-vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string ecp_dir_path, int k, int b, int L)
+vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string ecp_dir_path, int k, int b, int L, int metric)
 {
-    QueryIndex index;                                                        // Struct to pass around during search
-    index.top_level = load_index(ecp_dir_path + "ecp_index.bin");            // Load index from binary file
-    index.meta_data = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin"); // Load index meta data from binary file
-    index.clusters_file_path = ecp_dir_path + "ecp_clusters.bin";            // Set file path for clusters meta data
+    QueryIndex index;                                                                // Struct to pass around during search
+    index.top_level = load_index(ecp_dir_path + "ecp_index.bin", metric);            // Load index from binary file
+    index.meta_data = load_meta_data(ecp_dir_path + "ecp_cluster_meta.bin", metric); // Load index meta data from binary file
+    index.clusters_file_path = ecp_dir_path + "ecp_clusters.bin";                    // Set file path for clusters meta data
 
     fstream cluster_file;
     cluster_file.open(index.clusters_file_path, ios::in | ios::binary);
@@ -90,12 +90,15 @@ vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string
 /**
  * Load meta data for clusters from binary file
  */
-vector<ClusterMeta> load_meta_data(string meta_data_file_path)
+vector<ClusterMeta> load_meta_data(string meta_data_file_path, int metric)
 {
     fstream meta_data_file;
     meta_data_file.open(meta_data_file_path, ios::in | ios::binary);
     assert(meta_data_file.fail() == false); // Abort if file can not be opened
     uint32_t num_leafs = 0;
+    uint32_t binary_metric = 99; // Set metric to obviously wrong value to error on read
+    meta_data_file.read(reinterpret_cast<char *>(&binary_metric), sizeof(uint32_t));
+    assert((int)binary_metric == metric); // Abort if metric used to create binary file is not the same as currently used
     meta_data_file.read((char *)&num_leafs, sizeof(uint32_t));
     vector<ClusterMeta> cluster_meta_data;
     for (uint32_t i = 0; i < num_leafs; i++)

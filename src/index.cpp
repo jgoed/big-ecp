@@ -37,7 +37,14 @@ void create_index(string dataset_file_path, string ecp_dir_path, int L, int desi
 
     uint32_t num_leaders = ceil(num_points / (desired_cluster_size / (sizeof(DATATYPE) * DIMENSIONS + sizeof(uint32_t)))); // Calculate overall number of leaders
 
+#ifdef RANDOM_LEADER_IDS
     vector<uint32_t> random_leader_ids = create_random_unique_numbers(num_leaders, num_points - 1);
+
+#else
+    vector<int> leader_ids(num_leaders);
+    iota(leader_ids.begin(), leader_ids.end(), 0);
+
+#endif
 
     /////////////////////////////////
     // Create index tree structure //
@@ -54,11 +61,11 @@ void create_index(string dataset_file_path, string ecp_dir_path, int L, int desi
         {
             if (cur_lvl == 1) // Top level
             {
-                index.push_back(create_node(dataset_file, random_leader_ids[i], unique_node_id));
+                index.push_back(create_node(dataset_file, leader_ids[i], unique_node_id));
             }
             else // All other levels
             {
-                Node current_node = create_node(dataset_file, random_leader_ids[i], unique_node_id);
+                Node current_node = create_node(dataset_file, leader_ids[i], unique_node_id);
                 Node *clostest_node = get_closest_node_from_uncomplete_index(index, &current_node.leader.descriptors[0], cur_lvl - 1);
                 clostest_node->children.push_back(current_node);
             }
@@ -74,14 +81,16 @@ void create_index(string dataset_file_path, string ecp_dir_path, int L, int desi
     uint32_t num_nodes_in_index = 0;
     string index_file_path = ecp_dir_path + ECP_INDEX_FILE_NAME; // Create path to index binary file
     fstream index_file;
-    index_file.open(index_file_path, ios::out | ios::binary);                          // Open index binary file
-    assert(index_file.fail() == false);                                                // Abort if file can not be opened
+    index_file.open(index_file_path, ios::out | ios::binary); // Open index binary file
+    assert(index_file.fail() == false);                       // Abort if file can not be opened
+    uint32_t binary_metric = metric;
+    index_file.write(reinterpret_cast<char *>(&binary_metric), sizeof(uint32_t));      // Write down which metric was used to create index
     index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t)); // Write placeholder for total number of nodes in index included
     for (auto &node : index)                                                           // Go through each node in index
     {
         save_node(index_file, node, num_nodes_in_index); // Write node in index binary file
     }
-    index_file.seekp(0, index_file.beg);
+    index_file.seekp(sizeof(binary_metric), index_file.beg);
     index_file.write(reinterpret_cast<char *>(&num_nodes_in_index), sizeof(uint32_t)); // Write total number of nodes in index at first position in binary file
     index_file.close();
 
@@ -174,12 +183,15 @@ void save_node(fstream &index_file, Node node, uint32_t &num_nodes_in_index)
 /**
  * Load index from given index binary file into memory
  */
-vector<Node> load_index(string index_file_path)
+vector<Node> load_index(string index_file_path, int metric)
 {
     fstream index_file;
     index_file.open(index_file_path, ios::in | ios::binary);
     assert(index_file.fail() == false); // Abort if file can not be opened
     uint32_t num_nodes_to_read = 0;
+    uint32_t binary_metric = 99; // Set metric to obviously wrong value to error on read
+    index_file.read(reinterpret_cast<char *>(&binary_metric), sizeof(uint32_t));
+    assert((int)binary_metric == metric); // Abort if metric used to create binary file is not the same as currently used
     index_file.read(reinterpret_cast<char *>(&num_nodes_to_read), sizeof(uint32_t));
     vector<Node> index;
     uint32_t read_nodes = 0;

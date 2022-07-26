@@ -17,7 +17,7 @@ using namespace std;
 /**
  * Assign all points of given input dataset to leafs of given index and write it down in binary file
  */
-void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int num_chunks)
+void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int num_chunks, int metric)
 {
     fstream existing_clusters_file(ecp_dir_path + ECP_CLUSTERS_FILE_NAME);
     if (existing_clusters_file.is_open())
@@ -27,7 +27,7 @@ void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int
         return;
     }
 
-    vector<Node> index = load_index(ecp_dir_path + ECP_INDEX_FILE_NAME); // Read index from binary file
+    vector<Node> index = load_index(ecp_dir_path + ECP_INDEX_FILE_NAME, metric); // Read index from binary file
 
     fstream dataset_file;
     dataset_file.open(dataset_file_path, ios::in | ios::binary); // Open given input dataset binary file
@@ -118,7 +118,6 @@ void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int
     ///////////////////////////
 
     vector<uint32_t> leafs = find_all_leafs(index); // All cluster leaf ids in index
-    cout << "ECP: INDEX CONTAINS " << to_string(leafs.size()) << " leafs" << endl;
     vector<ClusterMeta> ecp_cluster_meta_data; // Meta data describing final database file of cluster assignments
 
     fstream cluster_file;
@@ -170,6 +169,8 @@ void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int
     string meta_data_file_path = ecp_dir_path + ECP_CLUSTER_META_FILE_NAME;
     cluster_meta_file.open(meta_data_file_path, ios::out | ios::binary);
     assert(cluster_file.fail() == false); // Abort if file can not be opened
+    uint32_t binary_metric = metric;
+    cluster_meta_file.write(reinterpret_cast<char *>(&binary_metric), sizeof(uint32_t)); // Write down which metric was used to create assignments
     cluster_meta_file.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
 
     for (uint32_t i = 0; i < num_leafs; i++)

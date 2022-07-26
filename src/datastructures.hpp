@@ -11,6 +11,7 @@
 #define ECP_CLUSTERS_FILE_NAME "ecp_clusters.bin"         // File name for clusters binary file
 #define ECP_CLUSTER_META_FILE_NAME "ecp_cluster_meta.bin" // File name for cluster meta data binary file
 #define MULTI_THREADING                                   // Uncomment to use multihreading
+//#define RANDOM_LEADER_IDS                                 // Uncomment to use random ids to build the index, using non random ids makes debugging easier
 
 namespace globals // Global variables
 {

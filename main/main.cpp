@@ -97,8 +97,8 @@ int main()
     vector<vector<float>> queries = load_queries(query_file_path);
 
     ecp::ecp_create_index(dataset_file_path, ecp_dir_path, L, desired_cluster_size, metric);
-    ecp::ecp_assign_points_to_cluster(dataset_file_path, ecp_dir_path, num_chunks);
-    auto results = ecp::ecp_process_query(queries, ecp_dir_path, k, b, L);
+    ecp::ecp_assign_points_to_cluster(dataset_file_path, ecp_dir_path, num_chunks, metric);
+    auto results = ecp::ecp_process_query(queries, ecp_dir_path, k, b, L, metric);
 
     auto ground_truth = load_ground_truth(ground_truth_file_path);
 

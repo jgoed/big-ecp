@@ -9,7 +9,7 @@
 /**
  * Assign all points of given input dataset to leafs of given index and write it down in binary file
  */
-void assign_points_to_cluster(std::string dataset_file_path, std::string ecp_dir_path, int num_chunks);
+void assign_points_to_cluster(std::string dataset_file_path, std::string ecp_dir_path, int num_chunks, int metric);
 
 /**
  * Function prototypes

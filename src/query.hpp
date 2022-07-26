@@ -9,12 +9,12 @@
 /**
  * Search k nearest neighbors in b clusters for every given query
  */
-std::vector<std::vector<unsigned int>> process_query(std::vector<std::vector<float>> queries, std::string ecp_dir_path, int k, int b, int L);
+std::vector<std::vector<unsigned int>> process_query(std::vector<std::vector<float>> queries, std::string ecp_dir_path, int k, int b, int L, int metric);
 
 /**
  * Function prototypes
  */
-std::vector<ClusterMeta> load_meta_data(std::string);
+std::vector<ClusterMeta> load_meta_data(std::string, int);
 std::vector<unsigned int> query(QueryIndex, std::vector<DATATYPE>, unsigned int, int, int);
 std::vector<std::pair<unsigned int, float>> k_nearest_neighbors(QueryIndex &, DATATYPE *, const unsigned int, const unsigned int, unsigned int);
 std::vector<Node *> find_b_nearest_clusters(std::vector<Node> &, DATATYPE *, unsigned int, unsigned int);
