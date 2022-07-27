@@ -123,6 +123,8 @@ void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int
     fstream cluster_file;
     cluster_file.open(ecp_dir_path + ECP_CLUSTERS_FILE_NAME, ios::out | ios::binary);
     assert(cluster_file.fail() == false); // Abort if file can not be opened
+    uint32_t binary_metric_cluster = metric;
+    cluster_file.write(reinterpret_cast<char *>(&binary_metric_cluster), sizeof(uint32_t)); // Write down which metric was used to create assignments
 
     for (auto leaf : leafs) // Go through each leaf in index tree
     {
@@ -169,8 +171,8 @@ void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int
     string meta_data_file_path = ecp_dir_path + ECP_CLUSTER_META_FILE_NAME;
     cluster_meta_file.open(meta_data_file_path, ios::out | ios::binary);
     assert(cluster_file.fail() == false); // Abort if file can not be opened
-    uint32_t binary_metric = metric;
-    cluster_meta_file.write(reinterpret_cast<char *>(&binary_metric), sizeof(uint32_t)); // Write down which metric was used to create assignments
+    uint32_t binary_metric_cluster_meta = metric;
+    cluster_meta_file.write(reinterpret_cast<char *>(&binary_metric_cluster_meta), sizeof(uint32_t)); // Write down which metric was used to create assignments
     cluster_meta_file.write(reinterpret_cast<char *>(&num_leafs), sizeof(uint32_t));
 
     for (uint32_t i = 0; i < num_leafs; i++)

@@ -48,7 +48,7 @@ struct ClusterMeta // meta data for all clusters aka leafs in the clusters binar
 {
     uint32_t cluster_id;         // Unique cluster id
     uint32_t num_points_in_leaf; // Number of points assigned to this leaf
-    uint32_t offset;             // Offset there cluster starts from begining of the file
+    uint32_t offset;             // Offset there cluster starts from beginning of the file
 };
 
 struct ClusterPoint // Format of assigned points stored in clusters binary file

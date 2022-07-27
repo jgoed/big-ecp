@@ -25,7 +25,10 @@ vector<vector<unsigned int>> process_query(vector<vector<float>> queries, string
     fstream cluster_file;
     cluster_file.open(index.clusters_file_path, ios::in | ios::binary);
     assert(cluster_file.fail() == false); // Abort if file can not be opened
-    cluster_file.close();                 // Check once if cluster file is available
+    uint32_t binary_metric = 99; // Set metric to obviously wrong value to error on read
+    cluster_file.read(reinterpret_cast<char *>(&binary_metric), sizeof(uint32_t));
+    assert((int)binary_metric == metric); // Abort if metric used to create binary file is not the same as currently used
+    cluster_file.close();                 // Check once if cluster file is available and has right metric, can not be checked every time during query, because to expensive
 
     int num_queries = queries.size();
     assert(queries[0].size() == DIMENSIONS); // Abort if queries do not have the same dimensions as expected
