@@ -63,8 +63,8 @@ class Ecp(BaseANN):
         queries = X.astype(np.float64)
         result = ecp.ecp_process_query(queries, self.index_dir, self.k, self.b, self.L)
         self.res = result
-        stats = dict({"dist_comps": ecp.ecp_get_distance_calculation_count()})
-        self.stats = stats
+        # stats = dict({"dist_comps": ecp.ecp_get_distance_calculation_count()})
+        # self.stats = stats
         print(self.stats["dist_comps"])
 
     def get_results(self):
