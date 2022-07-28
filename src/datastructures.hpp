@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#define DATATYPE float                                   // Datatype of points in dataset
+#define DATATYPE uint8_t                                   // Datatype of points in dataset
 #define DIMENSIONS 100                                    // Number of dimensions for each point in dataset
 #define ECP_INDEX_FILE_NAME "ecp_index.bin"               // File name for index binary file
 #define ECP_CLUSTERS_FILE_NAME "ecp_clusters.bin"         // File name for clusters binary file
