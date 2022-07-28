@@ -51,7 +51,7 @@ class Ecp(BaseANN):
         self.index_dir = self.create_index_dir(ds) + "/"
         dataset_file_path = ds.get_dataset_fn()
         self.index_file_path = ecp.ecp_create_index(dataset_file_path, self.index_dir, self.L, self.DCS, self.METRIC)
-        self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_dir, self.NC)
+        self.meta_data_file_path = ecp.ecp_assign_points_to_cluster(dataset_file_path, self.index_dir, self.NC, self.METRIC)
 
     def load_index(self, dataset):
         return False
@@ -61,7 +61,7 @@ class Ecp(BaseANN):
     
     def query(self, X, k):
         queries = X.astype(np.float64)
-        result = ecp.ecp_process_query(queries, self.index_dir, self.k, self.b, self.L)
+        result = ecp.ecp_process_query(queries, self.index_dir, self.k, self.b, self.L, self.METRIC)
         self.res = result
         stats = dict({"dist_comps": ecp.ecp_get_distance_calculation_count()})
         self.stats = stats
