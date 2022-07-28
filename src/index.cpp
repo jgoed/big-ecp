@@ -143,7 +143,7 @@ Node create_node(fstream &dataset_file, uint32_t position, uint32_t &unique_node
 /**
  * Get the closest node from uncomplete tree for given query point
  */
-Node *get_closest_node_from_uncomplete_index(vector<Node> &uncomplete_index, int8_t *query, int deepth)
+Node *get_closest_node_from_uncomplete_index(vector<Node> &uncomplete_index, DATATYPE *query, int deepth)
 {
     float max = numeric_limits<float>::max();
     Node *closest = nullptr;

@@ -20,7 +20,7 @@ std::vector<Node> load_index(std::string index_file_path, int metric);
  */
 std::vector<uint32_t> create_random_unique_numbers(uint32_t, uint32_t);
 Node create_node(std::fstream &, uint32_t, uint32_t &);
-Node *get_closest_node_from_uncomplete_index(std::vector<Node> &, int8_t *, int);
+Node *get_closest_node_from_uncomplete_index(std::vector<Node> &, DATATYPE *, int);
 void save_node(std::fstream &, Node, uint32_t &);
 Node load_node(std::fstream &, uint32_t &);
 
