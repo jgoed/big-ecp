@@ -118,7 +118,7 @@ void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int
     ///////////////////////////
 
     vector<uint32_t> leafs = find_all_leafs(index); // All cluster leaf ids in index
-    vector<ClusterMeta> ecp_cluster_meta_data; // Meta data describing final database file of cluster assignments
+    vector<ClusterMeta> ecp_cluster_meta_data;      // Meta data describing final database file of cluster assignments
 
     fstream cluster_file;
     cluster_file.open(ecp_dir_path + ECP_CLUSTERS_FILE_NAME, ios::out | ios::binary);
@@ -167,6 +167,11 @@ void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int
     /////////////////////////////////////////////
 
     uint32_t num_leafs = leafs.size();
+
+    fstream log_file(ecp_dir_path + ECP_LOG_FILE_NAME, ios::out);
+    assert(log_file.fail() == false); // Abort if file can not be opened
+    log_file << "Number of leafs in index: " << to_string(num_leafs) << endl;
+
     fstream cluster_meta_file;
     string meta_data_file_path = ecp_dir_path + ECP_CLUSTER_META_FILE_NAME;
     cluster_meta_file.open(meta_data_file_path, ios::out | ios::binary);
@@ -183,8 +188,10 @@ void assign_points_to_cluster(string dataset_file_path, string ecp_dir_path, int
         cluster_meta_file.write(reinterpret_cast<char *>(&cur_id), sizeof(uint32_t));
         cluster_meta_file.write(reinterpret_cast<char *>(&cur_num_points_in_leaf), sizeof(uint32_t));
         cluster_meta_file.write(reinterpret_cast<char *>(&cur_offset), sizeof(uint32_t));
+        log_file << to_string(cur_id) << " : " << to_string(cur_num_points_in_leaf) << endl;
     }
     cluster_meta_file.close();
+    log_file.close();
 
     return;
 }
