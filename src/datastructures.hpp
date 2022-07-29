@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 
-#define DATATYPE int8_t                                   // Datatype of points in dataset
+#define DATATYPE int8_t                                    // Datatype of points in dataset
 #define DIMENSIONS 100                                    // Number of dimensions for each point in dataset
 #define ECP_INDEX_FILE_NAME "ecp_index.bin"               // File name for index binary file
 #define ECP_CLUSTERS_FILE_NAME "ecp_clusters.bin"         // File name for clusters binary file
 #define ECP_CLUSTER_META_FILE_NAME "ecp_cluster_meta.bin" // File name for cluster meta data binary file
+#define ECP_LOG_FILE_NAME "ecp_log_file.txt"              // File name for log file
 #define MULTI_THREADING                                   // Uncomment to use multihreading
 //#define RANDOM_LEADER_IDS                                 // Uncomment to use random ids to build the index, using non random ids makes debugging easier
 
