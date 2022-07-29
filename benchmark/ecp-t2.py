@@ -65,7 +65,6 @@ class Ecp(BaseANN):
         self.res = result
         stats = dict({"dist_comps": ecp.ecp_get_distance_calculation_count()})
         self.stats = stats
-        print(self.stats["dist_comps"])
 
     def get_results(self):
         """
