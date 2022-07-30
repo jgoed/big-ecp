@@ -46,8 +46,6 @@ void create_index(string dataset_file_path, string ecp_dir_path, int L, int desi
 
 #endif
 
-    cout << "TEST" << endl;
-
     /////////////////////////////////
     // Create index tree structure //
     /////////////////////////////////
