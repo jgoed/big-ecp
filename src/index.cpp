@@ -38,7 +38,7 @@ void create_index(string dataset_file_path, string ecp_dir_path, int L, int desi
     uint32_t num_leaders = ceil(num_points / (desired_cluster_size / (sizeof(DATATYPE) * DIMENSIONS + sizeof(uint32_t)))); // Calculate overall number of leaders
 
 #ifdef RANDOM_LEADER_IDS
-    vector<uint32_t> random_leader_ids = create_random_unique_numbers(num_leaders, num_points - 1);
+    vector<uint32_t> leader_ids = create_random_unique_numbers(num_leaders, num_points - 1);
 
 #else
     vector<int> leader_ids(num_leaders);
