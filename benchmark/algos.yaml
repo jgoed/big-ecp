@@ -1,5 +1,5 @@
 any:
-    ecp-t2-L1:
+    ecp-t2-random-a:
       docker-tag: billion-scale-benchmark-ecp
       module: benchmark.algorithms.ecp-t2
       constructor: Ecp
@@ -7,7 +7,7 @@ any:
       run-groups:
         base:
           args: |
-              [{"L":1, "DCS":128000, "NC":5, "METRIC":3}]
+              [{"L":2, "DCS":128000, "NC":5, "METRIC":3}]
           query-args: |
               [{"k":10, "b":1},
               {"k":10, "b":2},
