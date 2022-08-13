@@ -1,48 +1,105 @@
 # big-ecp
 
-This repository contains a version of the Extended Cluster Pruning algorithm, which is designed to participate in the Big-ANN-Benchmark.
+This repository contains a version of the Extended Cluster Pruning algorithm mostly based on the previous work of [this](https://github.com/fremartini/eCP) repository, which is designed to participate in [Big-ANN-Benchmarks](https://github.com/harsha-simhadri/big-ann-benchmarks). This implementation can also be used in a standalone mode for developing and debugging.
 
-# Source code roadmap
-<pre><font color="#2A7BDE"><b>.</b></font>
-├── <font color="#2A7BDE"><b>benchmark</b></font> // All files needed by benchmark
-│   ├── algos.yaml
-│   ├── <font color="#33DA7A"><b>Dockerfile.ecp</b></font>
-│   └── ecp-t2.py
-├── CMakeLists.txt // Top level CMake file
-├── <font color="#2A7BDE"><b>include</b></font>
-│   └── <font color="#2A7BDE"><b>ecp</b></font>
-│       └── ecp.hpp // Include header of ecp library
-├── LICENSE
-├── <font color="#2A7BDE"><b>main</b></font>
-│   ├── CMakeLists.txt
-│   └── main.cpp // Main function for debugging using ecp library
-├── README.md
-├── <font color="#2A7BDE"><b>scripts</b></font>
-│   ├── <font color="#33DA7A"><b>build.sh</b></font> // Build project
-│   ├── <font color="#33DA7A"><b>configure.sh</b></font> // Configures project
-│   ├── <font color="#33DA7A"><b>copy_files.sh</b></font> // Copy necessary files to benchmark folder
-│   ├── <font color="#33DA7A"><b>docker_clean.sh</b></font> // Remove all docker images and containers
-│   └── <font color="#33DA7A"><b>gen_wrapper.sh</b></font> // Generate python wrapper for ecp library
-├── <font color="#2A7BDE"><b>src</b></font> // Main folder containing all src files for ecp library
-│   ├── assignment.cpp // Assigne all points to clusters and save in binary file
-│   ├── assignment.hpp
-│   ├── CMakeLists.txt
-│   ├── datastructures.cpp // Global defines, structs and variables
-│   ├── datastructures.hpp
-│   ├── distance.cpp // Different distance calculation functions
-│   ├── distance.hpp
-│   ├── ecp.cpp
-│   ├── index.cpp // Create index and save in binary file
-│   ├── index.hpp
-│   ├── query.cpp // Search knns for set of queries
-│   └── query.hpp
-└── <font color="#2A7BDE"><b>swig</b></font> // SWIG files to create python wrapper
-    ├── CMakeLists.txt
-    └── ecp.i
-</pre>
+<br>
 
-# Install
-Note: Ubuntu 22.04 has been used during development. Other linux distributions might need different instructions.
+# Install and usage with Big-ANN-Benchmarks
+
+The following steps were tested under a clean install of Ubuntu 18.04.6 LTS x86_64. Other version or distributions might also work, but perhaps need some adjustments. <br>
+
+Necessary steps to use big-ecp in Big-ANN-Benchmarks:
+1. Prepare Big-ANN-Benchmarks
+2. Install big-ecp in Big-ANN-Benchmarks
+3. Run big-ecp with Big-ANN-Benchmarks
+4. Configure big-ecp for various dataset and scenarios
+
+<br>
+
+## Prepare Big-ANN-Benchmarks
+
+If Big-ANN-Benchmarks undergoes changes in the future, the steps described here may lose their validity.
+
+1. Clone repository
+```
+git clone https://github.com/harsha-simhadri/big-ann-benchmarks.git
+cd big-ann-benchmarks
+```
+
+2. Install Python 3.6 and pip3
+```
+sudo apt install python3.6-dev python3-pip
+```
+
+3. Install requirements
+```
+pip3 install -r requirements.txt
+```
+
+4. Install docker
+Install docker by following instructions [here](https://docs.docker.com/engine/install/ubuntu/). You might also want to follow the post-install steps for running docker in non-root user mode.
+
+5. Install diskann base line algorithm, create small dataset, run test, change permissions for result directory and plot results.
+```
+python3 install.py --algorithm diskann
+python3 create_dataset.py --dataset random-xs
+python3 run.py --algorithm diskann-t2 --dataset random-xs
+chmod -R 777 results/
+python3 plot.py --dataset random-xs
+```
+
+<br>
+
+## Install big-ecp in Big-ANN-Benchmarks
+
+Note: Both repository must be placed in the same directory (for example ~/).
+
+1. Clone repository
+```
+git clone https://github.com/jgoed/big-ecp.git
+cd big-ecp
+```
+
+2. Clean existing docker containers and copy benchmark files to Big-ANN-Benchmarks
+```
+cd scripts/
+./docker_clean.sh
+./copy_files.sh
+```
+
+3. Change to Big-ANN-Benchmarks directory and install big-ecp
+```
+cd big-ann-benchmarks/
+python3 install.py --algorithm ecp
+```
+
+<br>
+
+## Use big-ecp with Big-ANN-Benchmarks
+1. Create dataset
+```
+python3 create_dataset.py --dataset msspacev-10M
+```
+
+2. Run benchmark
+```
+python3 run.py --algorithm ecp-t2 --dataset msspacev-10M
+```
+
+3. Plot results
+```
+chmod -R 777 results/
+python3 plot.py --dataset msspacev-10M
+```
+
+<br>
+
+## Configure big-ecp for various dataset and scenarios
+
+
+<br>
+
+# Standalone install and usage
 
 1. Install required packages
 ```
@@ -53,22 +110,4 @@ sudo apt install cmake cpp gcc swig
     - Use CMakeLists.txt in root directory with your favored IDE
     - Or use `scripts/configure.sh` and `scripts/build.sh`
 
-# Usage
-## Standalone
-The algorithm code from `src/` is complied as a C++ shared library, which is used by `main/mainc.pp`.
-
-## Big-ANN-Benchmark
-However since the main goal of this repository is to make eCP participating in the Big-ANN-Benchmark there is also a python wrapper (`swig/`) for the C++ shared library created.
-
-To use the algorithm in the benchmark both repositories ([https://github.com/harsha-simhadri/big-ann-benchmarks](https://github.com/harsha-simhadri/big-ann-benchmarks) and this) must be placed in the same directory.
-
-Also the some steps of big-ann-benchmarks must be followed, which includes installation, creating a first small dataset and complete a test run with DiskANN.
-
-After that one can use `scripts/copy_files` to copy the necessary files from `benchmark/` into `big-ann-benchmarks`.
-
-Finally the algorithm can be installed in the benchmark and used with the followign commands:
-
-```
-python install.py --algorithm ecp
-python run.py --algorithm --dataset msspacev-1B
-```
+The algorithm code from `src/` is complied as a C++ shared library, which is used by `main/main.cpp`. One needs to provide files like datasets or groundtruth which are otherwise provided by Big-ANN-Benchmarks.
