@@ -20,9 +20,10 @@ namespace distance
      */
     enum Metric
     {
-        EUCLIDEAN_OPT_UNROLL = 0,
-        ANGULAR,
-        EUCLIDEAN_HALT_OPT_UNROLL
+        EUCLIDEAN = 0,
+        EUCLIDEAN_HALT,
+        EUCLIDEAN_UNROLL,
+        EUCLIDEAN_HALT_UNROLL
     };
 
     /**
