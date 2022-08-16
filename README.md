@@ -36,8 +36,7 @@ sudo apt install python3.6-dev python3-pip
 pip3 install -r requirements.txt
 ```
 
-4. Install docker
-Install docker by following instructions [here](https://docs.docker.com/engine/install/ubuntu/). You might also want to follow the post-install steps for running docker in non-root user mode.
+4. Install docker by following instructions [here](https://docs.docker.com/engine/install/ubuntu/). You might also want to follow the post-install steps for running docker in non-root user mode.
 
 5. Install diskann base line algorithm, create small dataset, run test, change permissions for result directory and plot results.
 ```
@@ -96,6 +95,16 @@ python3 plot.py --dataset msspacev-10M
 
 ## Configure big-ecp for various dataset and scenarios
 
+1. The implementation must be correctly configured to the dataset to be used. The following configurations can be made via `#define` in `src/datastructure.hpp`:
+    - Change datatype of input dataset
+    - Change number of dimension of data points
+    - Change various file names created by the implementation
+    - Select between multi-threading or single core executaion
+    - Select if random leaders are used or not
+
+2. Various paramter of the algorithm can be configured in `benchmark/algos.yaml`.
+
+For a detailed explanation of the datatypes and dimension of the datasets and the `algos.yaml` file please check [Big-ANN-Benchmarks](https://github.com/harsha-simhadri/big-ann-benchmarks).
 
 <br>
 
@@ -109,5 +118,7 @@ sudo apt install cmake cpp gcc swig
 2. Build project
     - Use CMakeLists.txt in root directory with your favored IDE
     - Or use `scripts/configure.sh` and `scripts/build.sh`
+
+3. Run `main/main.cpp`
 
 The algorithm code from `src/` is complied as a C++ shared library, which is used by `main/main.cpp`. One needs to provide files like datasets or groundtruth which are otherwise provided by Big-ANN-Benchmarks.
